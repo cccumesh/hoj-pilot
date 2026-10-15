@@ -1,0 +1,219 @@
+{
+  "meta": {
+    "generated": "2026-10-12",
+    "repo": "axerai-richera (axerai-love)",
+    "provisionalTitle": "System and Method for Authenticated Spatial Anchoring and Generative Persona Manifestation",
+    "provisionalFile": "docs/akxerai-book/Provisional Specification.pdf",
+    "provisionalPages": 25,
+    "disclaimer": "Technical / IP preparation only — not legal advice. Patent attorney must determine patentability, claim scope, and filing strategy."
+  },
+  "disclosureInventory": [
+    {
+      "concept": "Tri-layer detection matrix (A/B/C)",
+      "level": "🟢",
+      "where": "pp. 8–14, 21–22, Abstract",
+      "notes": "Core architecture explicitly disclosed"
+    },
+    {
+      "concept": "Fusion engine + progressive validation",
+      "level": "🟢",
+      "where": "pp. 10, 14–15, 21–22",
+      "notes": "Cryptographic combine claimed — breadth high"
+    },
+    {
+      "concept": "Layer B economic / quota control",
+      "level": "🟢",
+      "where": "pp. 11, 15",
+      "notes": "Tied to generative session authorization"
+    },
+    {
+      "concept": "Visible QR/barcode/patterns",
+      "level": "🟢",
+      "where": "pp. 9, 21–22",
+      "notes": "Alternative to steganography"
+    },
+    {
+      "concept": "Steganographic / non-visible encoding",
+      "level": "🟢",
+      "where": "pp. 9, 21–22",
+      "notes": "Embodiment — not required to implement all"
+    },
+    {
+      "concept": "NPU microtexture / material liveness",
+      "level": "🟢",
+      "where": "pp. 9–10, 21–22",
+      "notes": "Detailed optical features listed"
+    },
+    {
+      "concept": "DID + distributed ledger + smart contracts",
+      "level": "🟢",
+      "where": "pp. 9–10, 15, 21–23",
+      "notes": "Broad blockchain wording"
+    },
+    {
+      "concept": "Staged ambassador → generative persona",
+      "level": "🟢",
+      "where": "pp. 14–15, 21–22",
+      "notes": "Latency masking embodiment"
+    },
+    {
+      "concept": "Edge-cloud + SLM fallback",
+      "level": "🟢",
+      "where": "pp. 11, 16–17, 21–22",
+      "notes": "Multiple connectivity embodiments"
+    },
+    {
+      "concept": "Sovereign privacy / redaction / embeddings",
+      "level": "🟢",
+      "where": "pp. 16–17, 21–22",
+      "notes": "Broad privacy engine"
+    },
+    {
+      "concept": "Geospatial validator (optional)",
+      "level": "🟢",
+      "where": "pp. 19–20",
+      "notes": "Conditional PAP/geofence"
+    },
+    {
+      "concept": "Sender/receiver gifting narrative",
+      "level": "🔴",
+      "where": "NOT FOUND IN PROVISIONAL",
+      "notes": "HOJ collect/deliver is prototype — not in patent text read"
+    },
+    {
+      "concept": "Prepaid B2B SaaS wallet / packages",
+      "level": "🔴",
+      "where": "NOT IN PROVISIONAL",
+      "notes": "In Economics Playbook only — business model doc"
+    },
+    {
+      "concept": "Gemini / specific AI vendor",
+      "level": "🔴",
+      "where": "NOT FOUND",
+      "notes": "Generic remote multimodal model — good breadth"
+    },
+    {
+      "concept": "MindAR / specific AR SDK",
+      "level": "🔴",
+      "where": "NOT FOUND",
+      "notes": "Generic planar tracking language"
+    },
+    {
+      "concept": "Supabase / Postgres",
+      "level": "🔴",
+      "where": "NOT FOUND",
+      "notes": "Generic server/ledger engine wording"
+    },
+    {
+      "concept": "Jewellery / House of Jewels brand context",
+      "level": "🔴",
+      "where": "NOT FOUND",
+      "notes": "PTE/PAP generic — brand is implementation"
+    },
+    {
+      "concept": "Archivist session_summaries blocks",
+      "level": "🔴",
+      "where": "NOT FOUND",
+      "notes": "Prototype memory format — post-filing development"
+    },
+    {
+      "concept": "Two-seat sender/receiver device pairing",
+      "level": "🟠",
+      "where": "IMPLIED via unit identity + memory",
+      "notes": "Not explicit HOJ gift flow in provisional"
+    },
+    {
+      "concept": "Commerce / biometric payment engine",
+      "level": "🟢",
+      "where": "p. 19",
+      "notes": "Future embodiment — not prototype"
+    },
+    {
+      "concept": "Silicon SoC sub-20ms indexing",
+      "level": "🟢",
+      "where": "pp. 9, 15, 21–23",
+      "notes": "Hardware embodiment — high R&D"
+    },
+    {
+      "concept": "IMU gaze-stability gating",
+      "level": "🟢",
+      "where": "pp. 11–12, 15, 21–22",
+      "notes": "Specific threshold ranges in places"
+    },
+    {
+      "concept": "Merkle-tree batch registration",
+      "level": "🟡",
+      "where": "p. 18",
+      "notes": "Single mention — weak enablement detail"
+    },
+    {
+      "concept": "Relationship: liveness → session gating",
+      "level": "🟡",
+      "where": "Fusion + Layer C rejection",
+      "notes": "Implied through fusion; not step-by-step software flow"
+    },
+    {
+      "concept": "Relationship: unit ID → budget/quota",
+      "level": "🟡",
+      "where": "Layer B economic + ledger 120",
+      "notes": "Conceptual link strong; software ledger weak detail"
+    }
+  ],
+  "reversePrototypeGaps": [
+    {
+      "capability": "Gemini 3-layer verify prompt protocol (LAYER1/2/3 lines)",
+      "inProvisional": "🟠",
+      "support": "Generic multi-layer validation — not this prompt format",
+      "gap": "Implementation detail; may be enablement example in complete spec",
+      "attorney": "Alternative embodiment vs new matter"
+    },
+    {
+      "capability": "MindAR + separate verify frame (decoupled A vs B/C)",
+      "inProvisional": "🟡",
+      "support": "Layer A tracking vs identity layers described separately",
+      "gap": "Patent suggests fusion; prototype splits AR target vs vision verify",
+      "attorney": "Clarify fusion in complete spec + evidence"
+    },
+    {
+      "capability": "Supabase ledger_threads sender/receiver memory",
+      "inProvisional": "🔴",
+      "support": "Persistent object memory via ledger engine — not relational schema",
+      "gap": "Gift collect/deliver product logic not in provisional",
+      "attorney": "Product embodiment doc vs patent core"
+    },
+    {
+      "capability": "Prepaid per-code AI/voice budgets (SaaS)",
+      "inProvisional": "🔴",
+      "support": "Usage quota mentioned abstractly",
+      "gap": "Economics playbook wallet flow not in provisional",
+      "attorney": "Connect quota to Layer B in complete specification"
+    },
+    {
+      "capability": "Inworld TTS + Netlify API proxy",
+      "inProvisional": "🔴",
+      "support": "Edge-cloud orchestration generically",
+      "gap": "Vendor-specific stack",
+      "attorney": "Keep claims architecture-level"
+    },
+    {
+      "capability": "Myra persona prompt / sender-receiver role packs",
+      "inProvisional": "🟡",
+      "support": "Generative persona + stateful interaction",
+      "gap": "Specific HOJ narrative mechanics not disclosed",
+      "attorney": "Persona binding to PTE — yes; brand scripts — no"
+    }
+  ],
+  "top10Attorney": [
+    "Map patent Layer A/B/C to prototype (MindAR vs Gemini layers) — avoid examiner confusion",
+    "Decide ledger claims: blockchain vs PostgreSQL registry embodiment",
+    "Liveness: enablement gap if only cloud VLM in working example",
+    "Fusion “cryptographic” language vs software parse gate in prototype",
+    "Sender/receiver gift memory — disclose in complete or keep trade secret",
+    "SaaS wallet/quota — connect to Layer B or separate business method caution",
+    "Staged persona timing vs verify — align figures with actual UX",
+    "Invisible encoding — need prophetic embodiment label?",
+    "Royalty/smart contract — trim or future-only in complete spec",
+    "Evidence plan before non-provisional: spoof matrix, fusion logs, metering tests"
+  ],
+  "generated": "2026-10-12T11:23:25.821Z"
+}

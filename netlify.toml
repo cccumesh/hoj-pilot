@@ -1,0 +1,16 @@
+[build]
+  command = "node scripts/verify-netlify-env.mjs && npm run build"
+  publish = "dist"
+
+[build.environment]
+  NODE_VERSION = "20"
+  # Table name and dashboard path are public config, and the repo must contain them.
+  SECRETS_SCAN_OMIT_KEYS = "VITE_SUPABASE_LEDGER_TABLE,VITE_DASHBOARD_PATH"
+
+[functions]
+  directory = "netlify/functions"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

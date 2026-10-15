@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>AKXERAI Admin Dashboard — Data &amp; Logic Guide</title>
+<style>
+@page { size: A4; margin: 14mm 12mm 16mm 12mm; }
+* { box-sizing: border-box; }
+body {
+  font-family: "Segoe UI", system-ui, sans-serif;
+  font-size: 9.5pt;
+  line-height: 1.48;
+  color: #1a1a1a;
+  margin: 0;
+}
+.cover {
+  page-break-after: always;
+  min-height: 88vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 20mm 6mm;
+}
+.cover h1 { font-size: 21pt; margin: 0 0 10px; line-height: 1.2; }
+.cover .sub { font-size: 11pt; color: #444; margin-bottom: 20px; }
+.cover .meta { font-size: 9pt; color: #666; }
+h2 { font-size: 13pt; margin: 20px 0 8px; border-bottom: 1px solid #ccc; padding-bottom: 4px; page-break-after: avoid; }
+h3 { font-size: 10.5pt; margin: 14px 0 6px; page-break-after: avoid; }
+p { margin: 0 0 8px; }
+ul, ol { margin: 0 0 10px 18px; }
+li { margin-bottom: 4px; }
+table { width: 100%; border-collapse: collapse; font-size: 8pt; margin: 10px 0 14px; }
+th, td { border: 1px solid #bbb; padding: 5px 6px; vertical-align: top; text-align: left; }
+th { background: #f0f0f0; }
+pre.diagram {
+  font-family: Consolas, monospace;
+  font-size: 7.5pt;
+  background: #f5f5f5;
+  padding: 10px;
+  border: 1px solid #ddd;
+  white-space: pre-wrap;
+  line-height: 1.35;
+}
+.callout {
+  background: #f8f4e8;
+  border-left: 4px solid #c9a227;
+  padding: 8px 10px;
+  margin: 10px 0;
+  font-size: 9pt;
+}
+.callout strong { color: #5a4a10; }
+.tag { display: inline-block; background: #eee; padding: 1px 6px; border-radius: 3px; font-size: 8pt; font-family: Consolas, monospace; }
+.page-break { page-break-before: always; }
+</style>
+</head>
+<body>
+
+<div class="cover">
+  <p class="meta">AKXERAI · House of Jewels Pilot</p>
+  <h1>Admin Dashboard<br/>Data &amp; Logic Reference</h1>
+  <p class="sub">Kya dikhta hai, kahan se aata hai, praise / issues kaise collect hote hain</p>
+  <p class="meta">Generated: 2026-10-14 · Repo: axerai-richera / axerai-love<br/>
+  UI: <span class="tag">src/AdminDashboard.jsx</span> · Analytics: <span class="tag">src/brandDashboard.js</span> · Ledger: <span class="tag">src/myraLedger.js</span> · Archivist labels: <span class="tag">src/myraSummarize.js</span></p>
+</div>
+
+<h2>1. Dashboard kya hai?</h2>
+<p><strong>Akxerai Insights</strong> ek password-protected brand command center hai (React route, e.g. <span class="tag">/axerai-insights-7k2m</span>). Yeh live Supabase ledger se pilot data dikhata hai — koi alag analytics server nahi.</p>
+<p>Pilot scope: brand slug <span class="tag">house-of-jewels</span>, table <span class="tag">ledger_threads</span> (env: <span class="tag">VITE_SUPABASE_LEDGER_TABLE</span>), 101 codes (HOJ-KOTTY @ <span class="tag">code_no 0</span> + HOJ-XXXXXX @ 1–100).</p>
+
+<h2>2. Data load flow (login ke baad)</h2>
+<pre class="diagram">Browser (AdminDashboard)
+  → fetchBrandLedgerThreads('house-of-jewels')     // saari rows, paginated
+  → fetchBrandAccount + fetchBrandWalletSnapshot   // token pool caps
+  → har scanned thread: backfillThreadSummariesFromConversation (agar summary missing)
+  → buildBrandDashboardAnalytics(threads, account, wallet)
+  → tabs: Overview | All codes | Feedback | Brand prompt | Akxerai | House of Jewels</pre>
+
+<h3>Supabase sources</h3>
+<table>
+<tr><th>Source</th><th>Column / object</th><th>Dashboard use</th></tr>
+<tr><td><span class="tag">ledger_threads</span></td><td><span class="tag">verification_code</span>, <span class="tag">role</span>, <span class="tag">code_no</span>, <span class="tag">scan_count</span></td><td>Kaun sa code scan hua, sender/receiver pairing</td></tr>
+<tr><td></td><td><span class="tag">conversation</span></td><td>Raw chat log; session footers (duration, AR/VR seconds); backfill agar summary na ho</td></tr>
+<tr><td></td><td><span class="tag">session_summaries</span></td><td><strong>Primary source</strong> for praise, issues, discovery, Akxerai sentiment (Archivist blocks)</td></tr>
+<tr><td></td><td><span class="tag">axerai_ai_usage</span>, <span class="tag">axerai_voice_usage</span></td><td>Token log, per-code budgets, wallet “used”</td></tr>
+<tr><td><span class="tag">brand_accounts</span></td><td>balances, <span class="tag">codes_allocated</span>, per-code caps</td><td>Total codes count, account mode (trial)</td></tr>
+<tr><td><span class="tag">brand_wallet_snapshot</span></td><td>view</td><td>Overview token rings (AI + voice pool used vs remaining)</td></tr>
+</table>
+
+<h2>3. Tabs — kya dikhta hai</h2>
+
+<h3>3.1 Overview (sabse important snapshot)</h3>
+<table>
+<tr><th>UI block</th><th>Meaning</th><th>Logic / source</th></tr>
+<tr><td>Total talk time</td><td>Saare codes ke sessions ka baat-cheet time</td><td>Sum of <span class="tag">durationSeconds</span> from parsed <span class="tag">session_summaries</span> (+ merge conversation footers via <span class="tag">buildDashboardAnalytics</span>)</td></tr>
+<tr><td>AR / VR / Intro</td><td>Experience view time</td><td>Session end footer fields saved in <span class="tag">conversation</span> per scan</td></tr>
+<tr><td>Total codes / scanned / remaining</td><td>101 pilot boxes; kitne scan hue</td><td><span class="tag">codes_allocated</span> or <span class="tag">total_codes</span>; scanned = any row <span class="tag">scan_count &gt; 0</span></td></tr>
+<tr><td>Gift stories complete</td><td>Sender + receiver dono ne scan</td><td>Per code: senderScans &gt; 0 AND receiverScans &gt; 0</td></tr>
+<tr><td>Discovery signals (tap)</td><td>“Kaise mile HOJ” quotes</td><td><span class="tag">DISCOVERY:</span> block in Archivist summary → <span class="tag">brandDiscovery[]</span></td></tr>
+<tr><td><strong>Brand praise</strong> (tap)</td><td>Product / shop tareef count + full list sheet</td><td><span class="tag">brandPraise[]</span> — see §4</td></tr>
+<tr><td><strong>Akxerai praise</strong> (tap)</td><td>Myra / magic delight count</td><td><span class="tag">akxeraiPraise[]</span> — see §4</td></tr>
+<tr><td><strong>Brand issues</strong> (tap)</td><td>Shop/product complaints</td><td><span class="tag">brandCriticism[]</span> — <span class="tag">BRAND PRODUCT CRITICISM</span></td></tr>
+<tr><td><strong>Akxerai issues</strong> (tap)</td><td>Tech / persona / voice negative</td><td><span class="tag">akxeraiFeedback</span> where <span class="tag">sentiment === 'negative'</span></td></tr>
+<tr><td>Customer voice strip</td><td>Top 5 mixed quotes</td><td>Brand praise + discovery + Akxerai praise, recent</td></tr>
+<tr><td>Token pool rings</td><td>Brand-wide AI + voice usage</td><td><span class="tag">brand_wallet_snapshot</span> + summed usage from all threads</td></tr>
+</table>
+
+<h3>3.2 All codes</h3>
+<p>Har verification code ki row: status (Idle / In use / Active), scan counts, talk time, praise counts, token %, latest quotes. Drill-down: per-code session list + conversation bubbles (<span class="tag">parseConversationForDashboard</span>).</p>
+
+<h3>3.3 Feedback</h3>
+<p>Cards for brand praise, brand criticism, discovery, Akxerai praise, Akxerai experience feedback (positive/negative + category). Raw Archivist dumps filter out (<span class="tag">isSummaryDump</span> — long THREAD blocks never show as user quotes).</p>
+
+<h3>3.4 Brand prompt</h3>
+<p><span class="tag">MYRA BRAND LINES</span> bullets from each session summary — jahan Myra ne House of Jewels / showroom / keepsake voice mein baat ki (<span class="tag">parseMyraBrandLinesFromSummary</span>).</p>
+
+<h3>3.5 Akxerai tab</h3>
+<p>Platform health: engagement chart, Akxerai positive vs negative sentiment, AR/VR totals, scan funnel (scan but no talk), sender/receiver pairing, age categories, voice budget near-limit codes, token log by Gemini call type.</p>
+
+<h3>3.6 House of Jewels tab</h3>
+<p>Brand intelligence counts: praise, discovery, complaints, codes with any brand signal, recent praise/discovery cards.</p>
+
+<div class="page-break"></div>
+<h2>4. Praise &amp; issues — core logic (sabse zaroori)</h2>
+
+<div class="callout">
+<strong>Golden rule:</strong> Dashboard <em>raw conversation par keyword search nahi karta</em> praise ke liye. Signals Archivist (Gemini) ke labeled blocks se aate hain jo scan end par <span class="tag">session_summaries</span> column mein save hote hain. Dashboard sirf un blocks ko parse karta hai.
+</div>
+
+<h3>4.1 Scan end → Archivist (background)</h3>
+<p>Jab user session band hota hai, <span class="tag">myraSummarize.js</span> Archivist ko poori session dialogue deta hai. Output mein fixed <strong>DASHBOARD SIGNALS</strong> sections hote hain (meaning-based, not word lists):</p>
+<ul>
+<li><span class="tag">DISCOVERY:</span> yes | "user words" / none</li>
+<li><span class="tag">BRAND PRODUCT PRAISE:</span> yes | "..." / none — HOJ product, staff, showroom, packaging</li>
+<li><span class="tag">BRAND PRODUCT CRITICISM:</span> yes | "..." / none — shop/product complaint</li>
+<li><span class="tag">AKXERAI PRAISE:</span> yes | "..." / none — Myra persona, digital magic delight</li>
+<li><span class="tag">AKXERAI EXPERIENCE FEEDBACK:</span> positive|negative | category | "..." — tech/voice/AR/speed/confusion</li>
+<li><span class="tag">MYRA BRAND LINES:</span> bullets for brand prompt tab</li>
+</ul>
+<p>Classification rules Archivist prompt mein defined: ek user quote ideally ek hi primary block; Myra boring = Akxerai negative (persona), staff accha = brand praise, etc.</p>
+
+<h3>4.2 Storage format</h3>
+<p>Har scan ek entry: <span class="tag">--- session N summary (sender|receiver) ---</span> with metadata (<span class="tag">date:</span>, <span class="tag">duration:</span>, optional <span class="tag">brand_praise:</span> / <span class="tag">axerai_praise:</span> shortcut lines) + full Archivist text body.</p>
+
+<h3>4.3 Dashboard parse pipeline</h3>
+<pre class="diagram">session_summaries
+  → parseSessionSummaryDetails()          // myraLedger.js — per scan row
+  → for each session in buildBrandDashboardAnalytics():
+       summaryText = session.summary
+       parseBrandProductPraise(summaryText)
+       parseBrandProductCriticism(summaryText)
+       parseDiscoveryFromSummary(summaryText)
+       parseAkxeraiPraiseFromSummary(summaryText)
+       parseAkxeraiExperienceFeedback(summaryText)
+       merge with session.brandPraiseQuote / akxeraiPraiseQuote shortcuts
+       push into brandPraise[], brandCriticism[], brandDiscovery[],
+                     akxeraiPraise[], akxeraiFeedback[]</pre>
+
+<h3>4.4 UI mapping — tum jo Overview par dekhte ho</h3>
+<table>
+<tr><th>Overview tile</th><th>Array / filter</th><th>Archivist block</th></tr>
+<tr><td>Brand praise</td><td><span class="tag">brand.brandPraise</span> length; sheet lists <span class="tag">quote</span>, code, scan #, role</td><td><span class="tag">BRAND PRODUCT PRAISE</span></td></tr>
+<tr><td>Akxerai praise</td><td><span class="tag">brand.akxeraiPraise</span> / <span class="tag">akxeraiPraiseCount</span></td><td><span class="tag">AKXERAI PRAISE</span></td></tr>
+<tr><td>Brand issues</td><td><span class="tag">brand.brandCriticism</span></td><td><span class="tag">BRAND PRODUCT CRITICISM</span></td></tr>
+<tr><td>Akxerai issues</td><td><span class="tag">akxeraiFeedback</span> negative only</td><td><span class="tag">AKXERAI EXPERIENCE FEEDBACK: negative</span></td></tr>
+<tr><td>Akxerai tab “positive”</td><td>akxeraiPraise count + positive experience feedback</td><td>AKXERAI PRAISE + positive feedback</td></tr>
+<tr><td>Akxerai tab “negative”</td><td>negative experience feedback count</td><td>negative feedback categories: persona, voice, scan_flow, ar_vr, speed, trust, other</td></tr>
+</table>
+
+<p>Quotes dashboard par max ~220 chars clip ho sakte hain; user ki <em>exact words</em> Archivist se aani chahiye (prompt requirement).</p>
+
+<h3>4.5 Backfill (dashboard Refresh)</h3>
+<p>Agar scan hua par <span class="tag">session_summaries</span> empty / corrupt / local_fallback: dashboard load par <span class="tag">backfillThreadSummariesFromConversation</span> saved <span class="tag">conversation</span> se Archivist dubara chala kar summary likh deta hai — tab praise/issues appear ho sakte hain. Isliye pehli baar dashboard khulne par thodi der lag sakti hai.</p>
+
+<h2>5. Supporting metrics (short)</h2>
+<ul>
+<li><strong>Scanned, no talk:</strong> scan_count &gt; 0 but session <span class="tag">userSaid</span> empty / “—” (<span class="tag">sessionHadUserSpeech</span>).</li>
+<li><strong>Per-code tokens:</strong> <span class="tag">axerai_ai_usage</span> / <span class="tag">axerai_voice_usage</span> JSON-ish log lines parsed; compared to <span class="tag">axerai_ai_budget</span> / <span class="tag">axerai_voice_budget</span> per row.</li>
+<li><strong>Age categories:</strong> first-scan picker stored on session footer; aggregated in <span class="tag">buildAgeCategoryAnalytics</span>.</li>
+</ul>
+
+<h2>6. Kya dashboard NAHI karta</h2>
+<ul>
+<li>Real-time websocket — Refresh button se dubara fetch.</li>
+<li>Praise ke liye live regex on <span class="tag">conversation</span> (by design).</li>
+<li>Cross-brand multi-tenant (abhi single slug HOJ pilot).</li>
+<li>Legal / PII redaction beyond quote length + dump filter.</li>
+</ul>
+
+<h2>7. Operator checklist</h2>
+<ol>
+<li>Supabase: <span class="tag">ledger_threads_fresh_start.sql</span> (HOJ-KOTTY @ 0) + env <span class="tag">VITE_SUPABASE_LEDGER_TABLE=ledger_threads</span>.</li>
+<li>Netlify build must bake same env; wrong table = column errors.</li>
+<li>After scans: Overview → Brand/Akxerai praise &amp; issues tiles; tap for full quote list.</li>
+<li>Empty praise: check <span class="tag">session_summaries</span> in Supabase for Archivist blocks; hit Refresh for backfill.</li>
+</ol>
+
+<p style="margin-top:24px;font-size:8pt;color:#666;">Internal reference for House of Jewels pilot &amp; Akxerai product team. Matches codebase at generation date.</p>
+</body>
+</html>

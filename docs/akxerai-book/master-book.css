@@ -1,0 +1,127 @@
+@page { size: A4; margin: 16mm 17mm 18mm; }
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: Georgia, "Palatino Linotype", "Times New Roman", serif;
+  font-size: 11.5pt;
+  line-height: 1.62;
+  color: #141820;
+  background: #fff;
+}
+.sans { font-family: "Segoe UI", Calibri, sans-serif; }
+.cover, .back {
+  page-break-after: always;
+  min-height: 262mm;
+  margin: -16mm -17mm -18mm;
+  padding: 20mm 18mm;
+  background: #080b10;
+  color: #f2ece2;
+  position: relative;
+}
+.back { page-break-before: always; page-break-after: auto; }
+.gold { color: #d4b483; }
+.rule { height: 2px; width: 56px; background: #c6a15a; margin: 14px 0 18px; }
+.eyebrow {
+  font-family: "Segoe UI", Calibri, sans-serif;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  font-size: 8pt;
+  color: #c6a15a;
+}
+.cover h1 { font-size: 42pt; line-height: 0.95; font-weight: 500; margin: 0 0 10px; }
+.cover h1 em { font-style: italic; color: #e8c98a; }
+.deck { font-size: 13pt; font-style: italic; color: #d5cdc0; max-width: 118mm; }
+.cover p { max-width: 120mm; color: #b8b0a4; font-size: 11pt; }
+.cover-foot, .back-foot {
+  position: absolute; left: 18mm; right: 18mm; bottom: 14mm;
+  display: flex; justify-content: space-between;
+  font-family: "Segoe UI", Calibri, sans-serif;
+  font-size: 7.5pt; letter-spacing: 0.12em; text-transform: uppercase; color: #8a8276;
+}
+.blank { page-break-after: always; min-height: 30mm; }
+.note { page-break-after: always; padding-top: 4mm; }
+.note h2 { font-size: 18pt; font-weight: 500; margin: 0 0 10px; }
+.toc { page-break-after: always; }
+.toc h2 { font-size: 22pt; font-weight: 500; margin: 0 0 12px; }
+.toc-part {
+  margin: 12px 0 4px;
+  font-family: "Segoe UI", Calibri, sans-serif;
+  font-size: 8pt;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #7a5c28;
+}
+.toc ol { margin: 0 0 6px; padding-left: 20px; font-size: 10.5pt; }
+.toc li { margin: 2px 0; }
+.part {
+  page-break-before: always;
+  min-height: 145mm;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding-bottom: 18mm;
+}
+.part .num { font-family: "Segoe UI", sans-serif; font-size: 8pt; letter-spacing: 0.18em; text-transform: uppercase; color: #7a5c28; }
+.part h1 { font-size: 28pt; font-weight: 500; margin: 6px 0 10px; line-height: 1.05; }
+.part p { max-width: 125mm; font-style: italic; color: #333; }
+.chapter { page-break-before: always; break-before: page; }
+.chapter.dense { page-break-before: auto; break-before: auto; margin-top: 8mm; padding-top: 6mm; border-top: 1px solid #eadfca; }
+h1.ch { font-size: 20pt; line-height: 1.15; font-weight: 500; margin: 0 0 10px; }
+.kicker {
+  font-family: "Segoe UI", Calibri, sans-serif;
+  font-size: 7.5pt;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #7a5c28;
+  margin-bottom: 4px;
+}
+.label {
+  display: inline-block;
+  font-family: "Segoe UI", sans-serif;
+  font-size: 7pt;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  margin: 0 0 8px;
+  border: 1px solid #dcc99a;
+  background: #fbf6ea;
+  color: #5c4a22;
+}
+.label.future { border-color: #b8c4d4; background: #f0f4fa; color: #3d4a5c; }
+.label.pilot { border-color: #c4dcc8; background: #f2faf4; color: #2d4a34; }
+.label.patent { border-color: #d4c4e8; background: #f6f2fc; color: #4a3d5c; }
+.label.scenario { border-color: #e8d4c4; background: #fdf8f2; color: #5c4030; }
+p { margin: 0 0 9px; }
+h2 { font-size: 13pt; font-weight: 500; margin: 14px 0 6px; }
+h3 { font-size: 11.5pt; font-weight: 600; margin: 10px 0 4px; font-family: "Segoe UI", sans-serif; }
+ul, ol { margin: 5px 0 10px; padding-left: 18px; }
+li { margin: 0 0 4px; }
+.pull {
+  margin: 12px 0;
+  padding: 3px 0 3px 12px;
+  border-left: 2px solid #c6a15a;
+  font-size: 12.5pt;
+  line-height: 1.45;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 8px 0 12px;
+  font-family: "Segoe UI", Calibri, sans-serif;
+  font-size: 9pt;
+}
+th, td { text-align: left; padding: 5px 7px; border-bottom: 1px solid #e6dfd0; vertical-align: top; }
+th { font-size: 7pt; letter-spacing: 0.06em; text-transform: uppercase; color: #6b5424; background: #fbf6ea; }
+.diagram {
+  margin: 10px 0 14px;
+  padding: 10px 12px;
+  border: 1px solid #eadfca;
+  background: #fffdf8;
+  font-family: "Segoe UI", sans-serif;
+  font-size: 9pt;
+  line-height: 1.5;
+}
+.diagram .title { font-size: 7pt; letter-spacing: 0.12em; text-transform: uppercase; color: #7a5c28; margin-bottom: 6px; }
+.flow { font-family: Consolas, monospace; font-size: 8.5pt; white-space: pre-wrap; line-height: 1.45; color: #2a2418; }
+.small { font-size: 9.5pt; color: #444; }
+.footmark { margin-top: 16px; font-size: 8pt; letter-spacing: 0.12em; text-transform: uppercase; color: #8a6a2f; }

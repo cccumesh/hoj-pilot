@@ -1,0 +1,3 @@
+-- Deprecated — is project ka poora setup ek file:
+--   supabase/FRESH_START.sql  (nuclear fresh)
+--   supabase/pilot_live_kotty_zero.sql  (sirf schema + Kotty@0, tokens bach kar)

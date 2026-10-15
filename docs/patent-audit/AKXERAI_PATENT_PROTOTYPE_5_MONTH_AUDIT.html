@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>AKXERAI Patent Prototype Audit</title>
+<style>
+@page { size: A4; margin: 14mm 12mm 16mm 12mm; }
+* { box-sizing: border-box; }
+body {
+  font-family: "Segoe UI", system-ui, sans-serif;
+  font-size: 9.5pt;
+  line-height: 1.45;
+  color: #1a1a1a;
+  margin: 0;
+  padding: 0;
+}
+.cover {
+  page-break-after: always;
+  min-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 24mm 8mm;
+}
+.cover h1 { font-size: 22pt; font-weight: 700; margin: 0 0 12px; line-height: 1.2; }
+.cover .sub { font-size: 11pt; color: #444; margin-bottom: 24px; }
+.cover .meta { font-size: 9pt; color: #666; }
+h2 { font-size: 13pt; margin: 22px 0 8px; page-break-after: avoid; border-bottom: 1px solid #ccc; padding-bottom: 4px; }
+h3 { font-size: 10.5pt; margin: 14px 0 6px; page-break-after: avoid; }
+p { margin: 0 0 8px; }
+ul, ol { margin: 0 0 10px 18px; padding: 0; }
+li { margin-bottom: 4px; }
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 7.5pt;
+  margin: 10px 0 14px;
+  page-break-inside: auto;
+}
+th, td {
+  border: 1px solid #bbb;
+  padding: 4px 5px;
+  vertical-align: top;
+  text-align: left;
+}
+th { background: #f0f0f0; font-weight: 600; }
+tr { page-break-inside: avoid; }
+.legend { font-size: 8pt; background: #f8f8f8; padding: 8px; margin: 8px 0; border-left: 3px solid #333; }
+.disclaimer { font-size: 8pt; color: #555; font-style: italic; margin: 12px 0; }
+pre.diagram {
+  font-family: Consolas, monospace;
+  font-size: 7pt;
+  background: #f5f5f5;
+  padding: 10px;
+  white-space: pre-wrap;
+  border: 1px solid #ddd;
+  margin: 10px 0;
+}
+.score-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin: 12px 0;
+}
+.score-card {
+  border: 1px solid #ccc;
+  padding: 8px;
+  font-size: 8.5pt;
+}
+.score-card strong { font-size: 14pt; display: block; }
+.page-break { page-break-before: always; }
+.toc { font-size: 9pt; }
+.toc li { margin: 3px 0; }
+.tag { font-size: 7pt; font-weight: 600; }
+</style>
+</head>
+<body>
+
+<div class="cover">
+  <h1>AKXERAI — PATENT ↔ PROTOTYPE REALITY AUDIT &amp; 5-MONTH TECHNICAL EXECUTION ROADMAP</h1>
+  <p class="sub">Forensic codebase review × Indian provisional specification · Engineering readiness only</p>
+  <p class="meta">Repository: axerai-richera (axerai-love)<br/>
+  Provisional: docs/akxerai-book/Provisional Specification.pdf (25 pages)<br/>
+  Generated: 2026-10-12</p>
+  <p class="disclaimer">Technical / IP preparation only — not legal advice. Patent attorney must determine patentability, claim scope, and filing strategy.</p>
+</div>
+
+<h2>Executive summary</h2>
+<p>The working HOJ pilot demonstrates a <strong>commercially meaningful slice</strong> of the provisional’s story: physical scan → unit identity → gated generative persona (Myra) → persistent ledger memory → usage metering → brand dashboard. The <strong>strongest overlap</strong> is generative persona + stateful memory + scan-triggered authorization + per-unit codes. The <strong>largest gap</strong> is patent Layer C (material/NPU liveness), cryptographic fusion, and decentralized ledger/DID — the prototype uses <strong>Gemini vision prompts</strong> for “Layer 2/3” and <strong>Supabase Postgres</strong> instead of smart contracts.</p>
+<p>Do not present the prototype as implementing silicon sub-20ms indexing, IMU power-gating, steganographic decode, or on-device SLM — these are <strong>[FUTURE / R&D]</strong> or <strong>[DISCLOSED IN PROVISIONAL]</strong> only.</p>
+
+<div class="legend">
+<strong>Status legend:</strong> 🟢 MATCHED · 🟡 PARTIAL · 🔵 ARCHITECTURE ONLY · 🟠 FUTURE/R&amp;D · 🔴 NOT FOUND · 🟣 NEW DEVELOPMENT (post-provisional product)
+</div>
+
+<h2>Table of contents</h2>
+<ol class="toc">
+<li>Prototype forensic summary</li>
+<li>Provisional invention elements (summary)</li>
+<li>Patent ↔ prototype mapping (table + detail)</li>
+<li>Invention vs implementation technology</li>
+<li>Design-around analysis</li>
+<li>5-month buildability audit</li>
+<li>Month-by-month roadmap</li>
+<li>Team required</li>
+<li>Technical evidence package</li>
+<li>Patent attorney handoff</li>
+<li>Three scenarios (5 months)</li>
+<li>Core IP reality check</li>
+<li>Executive scorecard</li>
+<li>One-page action plan</li>
+</ol>
+
+<div class="page-break"></div>
+<h2>Part 1 — Current prototype (forensic)</h2>
+<h3>End-to-end flow [CURRENTLY IMPLEMENTED]</h3>
+<ol>
+<li>Browser loads React app; MindAR tracks <code>public/targets.mind</code> (Layer A UX).</li>
+<li>On target found: anchor video → canvas frame → <code>verifyHojProduct()</code> (Gemini image + VERIFY_SYSTEM).</li>
+<li>On REAL: code matched to <code>ledger_threads.verification_code</code>; device_id binds sender/receiver seats.</li>
+<li><code>isVerified</code> unlocks mic/chat; Gemini + Inworld/ElevenLabs; lines persist to Supabase.</li>
+<li>Exit: Archivist summaries to <code>session_summaries</code>; token/voice usage appended.</li>
+</ol>
+<h3>Not implemented [NOT FOUND]</h3>
+<ul>
+<li>QR decode library; NPU/microtexture; blockchain/DID; crypto fusion; runtime budget hard-stop; image redaction before cloud verify.</li>
+</ul>
+
+<h2>Part 2 — Provisional invention elements (extract)</h2>
+<p>Source: docs/akxerai-book/Provisional Specification.pdf. Key blocks: tiered tri-layer matrix 116A/B/C; fusion engine 118; ledger engine 120 (DID, quota, royalty); edge-cloud 126; privacy 128; optional geospatial 136; method claims pp. 21–22.</p>
+
+<h2>Part 3 — Patent ↔ prototype mapping</h2>
+<table><thead><tr><th>Patent element</th><th>Status</th><th>Patent (summary)</th><th>Prototype evidence</th><th>Gap / priority</th></tr></thead><tbody><tr><td>Layer A — planar pattern / image tracking</td><td>🟡 PARTIAL</td><td>116A: optical capture, visual descriptors, planar tracking, 2D signature (pp. 8–9, 21–22)</td><td>src/App.jsx (MindARSession), src/akxeraiAssets.js, public/targets.mind</td><td>No custom planar signature extraction; verify frame is separate canvas snap… [P1]</td></tr><tr><td>Layer B — neural-optical unit identity</td><td>🟡 PARTIAL</td><td>116B: ISP decode visible QR/barcode OR steganographic pixel payload; neural reconstruction (pp. 9, 21–22)</td><td>src/myraVerify.js (VERIFY_SYSTEM, verifyHojProduct)</td><td>No QR decoder; no pixel-embedded signature recovery… [P0]</td></tr><tr><td>Layer C — microtexture / material liveness (NPU)</td><td>🔴 NOT FOUND</td><td>116C: NPU grain, reflectance, polarization, anti-print/screen (pp. 9–10, 21–22)</td><td>src/myraVerify.js LAYER2; NOT VERIFIED: formal spoof test suite</td><td>No NPU, no material optics, no measured false accept/reject… [P0]</td></tr><tr><td>Async verification fusion engine</td><td>🟡 PARTIAL</td><td>118: cryptographic combine A+B+C; progressive validation; staged persona (pp. 10, 14–15, 21–22)</td><td>src/myraVerify.js parseVerifyResponse; App.jsx completeVerification</td><td>No fusion engine module; Layer A (MindAR) not fused with verify layers in code… [P0]</td></tr><tr><td>Staged persona (ambassador → full generative)</td><td>🟡 PARTIAL</td><td>Pre-cached ambassador on Layer A; full persona after fusion + ledger (pp. 14–15, 21–22)</td><td>src/App.jsx showMyra, handleTargetVideoEnded, jarvisUiReady</td><td>Persona visible before verify in some paths… [P1]</td></tr><tr><td>Decentralized identity / DID</td><td>🔴 NOT FOUND</td><td>120: DID per PTE; smart-contract quota/royalty (pp. 9–10, 15, 21–23)</td><td>src/myraLedger.js getDeviceId</td><td>No DID document; no distributed ledger… [P1]</td></tr><tr><td>Ledger / registry / interaction hashes</td><td>🟡 PARTIAL</td><td>120: interaction hashes; object-level memory; royalty events (pp. 15–16, 19)</td><td>supabase/ledger_threads_fresh_start.sql; src/myraLedger.js</td><td>No hash chain; no smart-contract royalty… [P1]</td></tr><tr><td>Layer B as economic control layer</td><td>🟡 PARTIAL</td><td>Layer B authorizes generative session; usage quota; commercial settlement (pp. 11, 15)</td><td>App.jsx isVerified; myraLedger recordGeminiUsage — no budget gate in askGemini</td><td>No runtime block when per-code budget exhausted… [P0]</td></tr><tr><td>Usage quota / consumption accounting</td><td>🟢 MATCHED</td><td>Quota validation via ledger engine (pp. 9–10, 21–22)</td><td>src/myraLedger.js recordGeminiUsage; src/brandAccounts.js</td><td>Enforcement gate not implemented client-side… [P1]</td></tr><tr><td>Generative persona / multimodal interaction</td><td>🟢 MATCHED</td><td>Stateful generative spatial persona; edge-cloud orchestration (pp. 10–11, 16–17)</td><td>src/myraPrompt.js, App.jsx askGemini, src/myraModel.js</td><td>Cloud-heavy; no on-device SLM fallback as in patent… [P2]</td></tr><tr><td>Persistent memory / sender-receiver state</td><td>🟢 MATCHED</td><td>Object-level memory without raw biometrics (pp. 10, 15)</td><td>src/myraLedger.js, src/myraSummarize.js</td><td>Not cryptographically secured memory… [P2]</td></tr><tr><td>Silicon-level indexing / sub-20ms resolution</td><td>🔴 NOT FOUND</td><td>122: SoC pattern-matching sub-20ms (pp. 9, 15, 21–23)</td><td>NOT VERIFIED FROM AVAILABLE MATERIAL</td><td>Research / hardware embodiment only in patent… [P3]</td></tr><tr><td>IMU / power-gating / intent detection</td><td>🔴 NOT FOUND</td><td>124: dormant sensors; IMU gaze-stability; thermal governance (pp. 11, 15–16, 21–22)</td><td>grep IMU/power-gate in src/ — E</td><td>Future mobile optimization… [P3]</td></tr><tr><td>Sovereign privacy / enclave / redaction</td><td>🟡 PARTIAL</td><td>128: on-device denoise, peripheral redaction, embeddings only (pp. 16–17, 21–22)</td><td>src/myraPrompt.js; src/myraVerify.js compressImageForVerify</td><td>Verify sends full frame to cloud… [P2]</td></tr><tr><td>Edge-cloud orchestration / SLM fallback</td><td>🟡 PARTIAL</td><td>126: local tracking/render; cloud reasoning; SLM on connectivity loss (pp. 11, 16–17)</td><td>src/apiProxy.js, netlify/functions/gemini.mjs</td><td>No encrypted neural tunnel abstraction in code… [P2]</td></tr><tr><td>Invisible / steganographic encoding</td><td>🔴 NOT FOUND</td><td>Non-human-perceptible embedded signatures (pp. 9, 21–22)</td><td>NOT FOUND IN CODEBASE</td><td>R&amp;D / manufacturing embodiment… [P3]</td></tr><tr><td>Geospatial validator (optional PAP)</td><td>🔴 NOT FOUND</td><td>136: optional GPS tether for persona stage-2 (pp. 19–20)</td><td>src/myraPrompt.js buildOpeningLiveContext</td><td>No backend registry coordinate check… [P3]</td></tr><tr><td>Commerce engine / in-experience payment</td><td>🔴 NOT FOUND</td><td>132: volumetric twins + biometric payment (pp. 19)</td><td>NOT FOUND</td><td>Future embodiment… [P3]</td></tr><tr><td>Three-layer verify (product naming)</td><td>🟡 PARTIAL</td><td>Tri-layer matrix 116A/B/C (throughout)</td><td>src/myraVerify.js; App.jsx [Scan] 3-layer verify logs</td><td>Layers are prompt partitions not hardware pipelines… [P0]</td></tr><tr><td>QR / barcode as identity embodiment</td><td>🟡 PARTIAL</td><td>Explicit QR/barcode in Layer B (pp. 9, 21–22)</td><td>src/myraVerify.js — no jsQR/zxing</td><td>No dedicated symbology decode… [P2]</td></tr><tr><td>Anti-spoof (photo / screen / print)</td><td>🟡 PARTIAL</td><td>116C + Layer C rejection of 2D replicas (pp. 10, 14)</td><td>src/myraVerify.js; AdminDashboard analytics</td><td>No structured replay attack test matrix… [P0]</td></tr><tr><td>Hardware-agnostic browser client</td><td>🟢 MATCHED</td><td>Smartphone / HMD / spatial interfaces (pp. 7, 21)</td><td>src/App.jsx, src/mobileBrowser.js</td><td>No native HMD build in repo… [P2]</td></tr><tr><td>Per-unit authorization before AI session</td><td>🟢 MATCHED</td><td>Fusion authorizes generative interaction (pp. 11–12, 15)</td><td>App.jsx isVerified, sendMyraUserMessage gates</td><td>Fusion not cryptographically evidenced… [P1]</td></tr><tr><td>Royalty / automated settlement</td><td>🔴 NOT FOUND</td><td>138 royalty attribution engine; smart contracts (pp. 15–16, 19)</td><td>NOT FOUND</td><td>Business layer in patent only… [P3]</td></tr><tr><td>Social story / reel capture (product feature)</td><td>🟣 NEW DEVELOPMENT</td><td>NOT DISCLOSED IN PROVISIONAL</td><td>src/reelCapture.js, src/App.jsx reelRecord</td><td>Attorney: implementation detail vs new matter… [P2]</td></tr></tbody></table>
+<div class="page-break"></div>
+<h3>Detailed mapping entries</h3>
+
+<h3>Layer A — planar pattern / image tracking <span class="tag">🟡 PARTIAL</span></h3>
+<p><strong>[DISCLOSED IN PROVISIONAL]</strong> 116A: optical capture, visual descriptors, planar tracking, 2D signature (pp. 8–9, 21–22)</p>
+<p><strong>[CURRENTLY IMPLEMENTED]</strong> MindAR image target on public/targets.mind; MindARThree session in App.jsx; anchor video + Myra on anchorGroup</p>
+<p><strong>Technical match:</strong> MindAR provides AR tracking on printed target — not same as patent’s generic PTE edge/contour pipeline</p>
+<p><strong>Gap:</strong> No custom planar signature extraction; verify frame is separate canvas snap</p>
+<p><strong>Evidence:</strong> <code>src/App.jsx (MindARSession), src/akxeraiAssets.js, public/targets.mind</code></p>
+
+<h3>Layer B — neural-optical unit identity <span class="tag">🟡 PARTIAL</span></h3>
+<p><strong>[DISCLOSED IN PROVISIONAL]</strong> 116B: ISP decode visible QR/barcode OR steganographic pixel payload; neural reconstruction (pp. 9, 21–22)</p>
+<p><strong>[CURRENTLY IMPLEMENTED]</strong> Gemini vision reads printed HOJ- code / Kotty / HOJ branding; normalizeVerificationCode; ledger verification_code match</p>
+<p><strong>Technical match:</strong> Unit-level ID outcome exists; method is cloud VLM not ISP/steganography</p>
+<p><strong>Gap:</strong> No QR decoder; no pixel-embedded signature recovery</p>
+<p><strong>Evidence:</strong> <code>src/myraVerify.js (VERIFY_SYSTEM, verifyHojProduct)</code></p>
+
+<h3>Layer C — microtexture / material liveness (NPU) <span class="tag">🔴 NOT FOUND</span></h3>
+<p><strong>[DISCLOSED IN PROVISIONAL]</strong> 116C: NPU grain, reflectance, polarization, anti-print/screen (pp. 9–10, 21–22)</p>
+<p><strong>[CURRENTLY IMPLEMENTED]</strong> LAYER2 in Gemini prompt: screen/photo/monitor glare heuristics → PHOTO_SPOOF</p>
+<p><strong>Technical match:</strong> Anti-spoof intent only at prompt level</p>
+<p><strong>Gap:</strong> No NPU, no material optics, no measured false accept/reject</p>
+<p><strong>Evidence:</strong> <code>src/myraVerify.js LAYER2; NOT VERIFIED: formal spoof test suite</code></p>
+
+<h3>Async verification fusion engine <span class="tag">🟡 PARTIAL</span></h3>
+<p><strong>[DISCLOSED IN PROVISIONAL]</strong> 118: cryptographic combine A+B+C; progressive validation; staged persona (pp. 10, 14–15, 21–22)</p>
+<p><strong>[CURRENTLY IMPLEMENTED]</strong> Gemini returns LAYER1/2/3 PASS/FAIL + RESULT; parseVerifyResponse; no crypto combine</p>
+<p><strong>Technical match:</strong> Multi-signal gate before REAL; not cryptographic fusion</p>
+<p><strong>Gap:</strong> No fusion engine module; Layer A (MindAR) not fused with verify layers in code</p>
+<p><strong>Evidence:</strong> <code>src/myraVerify.js parseVerifyResponse; App.jsx completeVerification</code></p>
+
+<h3>Staged persona (ambassador → full generative) <span class="tag">🟡 PARTIAL</span></h3>
+<p><strong>[DISCLOSED IN PROVISIONAL]</strong> Pre-cached ambassador on Layer A; full persona after fusion + ledger (pp. 14–15, 21–22)</p>
+<p><strong>[CURRENTLY IMPLEMENTED]</strong> Target video then Myra FBX; showMyra can precede verify; welcome after isVerified</p>
+<p><strong>Technical match:</strong> Staged UX (video → persona → chat) but not tied to layer-wise auth</p>
+<p><strong>Gap:</strong> Persona visible before verify in some paths</p>
+<p><strong>Evidence:</strong> <code>src/App.jsx showMyra, handleTargetVideoEnded, jarvisUiReady</code></p>
+
+<h3>Decentralized identity / DID <span class="tag">🔴 NOT FOUND</span></h3>
+<p><strong>[DISCLOSED IN PROVISIONAL]</strong> 120: DID per PTE; smart-contract quota/royalty (pp. 9–10, 15, 21–23)</p>
+<p><strong>[CURRENTLY IMPLEMENTED]</strong> Browser device_id UUID in localStorage; Supabase ledger_threads rows</p>
+<p><strong>Technical match:</strong> Persistent device binding only</p>
+<p><strong>Gap:</strong> No DID document; no distributed ledger</p>
+<p><strong>Evidence:</strong> <code>src/myraLedger.js getDeviceId</code></p>
+
+<h3>Ledger / registry / interaction hashes <span class="tag">🟡 PARTIAL</span></h3>
+<p><strong>[DISCLOSED IN PROVISIONAL]</strong> 120: interaction hashes; object-level memory; royalty events (pp. 15–16, 19)</p>
+<p><strong>[CURRENTLY IMPLEMENTED]</strong> conversation + session_summaries + axerai_*_usage text; ledger_insights</p>
+<p><strong>Technical match:</strong> Centralized Postgres registry with per-code threads</p>
+<p><strong>Gap:</strong> No hash chain; no smart-contract royalty</p>
+<p><strong>Evidence:</strong> <code>supabase/ledger_threads_fresh_start.sql; src/myraLedger.js</code></p>
+
+<h3>Layer B as economic control layer <span class="tag">🟡 PARTIAL</span></h3>
+<p><strong>[DISCLOSED IN PROVISIONAL]</strong> Layer B authorizes generative session; usage quota; commercial settlement (pp. 11, 15)</p>
+<p><strong>[CURRENTLY IMPLEMENTED]</strong> Verify must pass REAL before startLedgerScan; metering post-hoc to columns</p>
+<p><strong>Technical match:</strong> Session gated on verify + known code; budgets stored not hard-enforced in chat</p>
+<p><strong>Gap:</strong> No runtime block when per-code budget exhausted</p>
+<p><strong>Evidence:</strong> <code>App.jsx isVerified; myraLedger recordGeminiUsage — no budget gate in askGemini</code></p>
+
+<h3>Usage quota / consumption accounting <span class="tag">🟢 MATCHED</span></h3>
+<p><strong>[DISCLOSED IN PROVISIONAL]</strong> Quota validation via ledger engine (pp. 9–10, 21–22)</p>
+<p><strong>[CURRENTLY IMPLEMENTED]</strong> axerai_ai_used_total, axerai_voice_used_total append; brand_wallet_snapshot view</p>
+<p><strong>Technical match:</strong> Metering + dashboard wallet — prepaid SaaS model in economics docs</p>
+<p><strong>Gap:</strong> Enforcement gate not implemented client-side</p>
+<p><strong>Evidence:</strong> <code>src/myraLedger.js recordGeminiUsage; src/brandAccounts.js</code></p>
+
+<h3>Generative persona / multimodal interaction <span class="tag">🟢 MATCHED</span></h3>
+<p><strong>[DISCLOSED IN PROVISIONAL]</strong> Stateful generative spatial persona; edge-cloud orchestration (pp. 10–11, 16–17)</p>
+<p><strong>[CURRENTLY IMPLEMENTED]</strong> Myra prompts + Gemini chat + Inworld/ElevenLabs TTS + 3D FBX on anchor</p>
+<p><strong>Technical match:</strong> Strong product demonstration of persona + voice + memory</p>
+<p><strong>Gap:</strong> Cloud-heavy; no on-device SLM fallback as in patent</p>
+<p><strong>Evidence:</strong> <code>src/myraPrompt.js, App.jsx askGemini, src/myraModel.js</code></p>
+
+<h3>Persistent memory / sender-receiver state <span class="tag">🟢 MATCHED</span></h3>
+<p><strong>[DISCLOSED IN PROVISIONAL]</strong> Object-level memory without raw biometrics (pp. 10, 15)</p>
+<p><strong>[CURRENTLY IMPLEMENTED]</strong> Dual threads per code; session_summaries Archivist; recipient delivery from sender digest</p>
+<p><strong>Technical match:</strong> Core HOJ pilot differentiator implemented</p>
+<p><strong>Gap:</strong> Not cryptographically secured memory</p>
+<p><strong>Evidence:</strong> <code>src/myraLedger.js, src/myraSummarize.js</code></p>
+
+<h3>Silicon-level indexing / sub-20ms resolution <span class="tag">🔴 NOT FOUND</span></h3>
+<p><strong>[DISCLOSED IN PROVISIONAL]</strong> 122: SoC pattern-matching sub-20ms (pp. 9, 15, 21–23)</p>
+<p><strong>[CURRENTLY IMPLEMENTED]</strong> NOT FOUND</p>
+<p><strong>Technical match:</strong> N/A</p>
+<p><strong>Gap:</strong> Research / hardware embodiment only in patent</p>
+<p><strong>Evidence:</strong> <code>NOT VERIFIED FROM AVAILABLE MATERIAL</code></p>
+
+<h3>IMU / power-gating / intent detection <span class="tag">🔴 NOT FOUND</span></h3>
+<p><strong>[DISCLOSED IN PROVISIONAL]</strong> 124: dormant sensors; IMU gaze-stability; thermal governance (pp. 11, 15–16, 21–22)</p>
+<p><strong>[CURRENTLY IMPLEMENTED]</strong> Continuous camera for MindAR; no IMU-gated ISP in code</p>
+<p><strong>Technical match:</strong> N/A</p>
+<p><strong>Gap:</strong> Future mobile optimization</p>
+<p><strong>Evidence:</strong> <code>grep IMU/power-gate in src/ — E</code></p>
+
+<h3>Sovereign privacy / enclave / redaction <span class="tag">🟡 PARTIAL</span></h3>
+<p><strong>[DISCLOSED IN PROVISIONAL]</strong> 128: on-device denoise, peripheral redaction, embeddings only (pp. 16–17, 21–22)</p>
+<p><strong>[CURRENTLY IMPLEMENTED]</strong> Prompt RULE 14b (no speak GPS); strip tags before TTS; full JPEG to Gemini verify</p>
+<p><strong>Technical match:</strong> Policy-level privacy in prompts; no image redaction pipeline</p>
+<p><strong>Gap:</strong> Verify sends full frame to cloud</p>
+<p><strong>Evidence:</strong> <code>src/myraPrompt.js; src/myraVerify.js compressImageForVerify</code></p>
+
+<h3>Edge-cloud orchestration / SLM fallback <span class="tag">🟡 PARTIAL</span></h3>
+<p><strong>[DISCLOSED IN PROVISIONAL]</strong> 126: local tracking/render; cloud reasoning; SLM on connectivity loss (pp. 11, 16–17)</p>
+<p><strong>[CURRENTLY IMPLEMENTED]</strong> MindAR local; Gemini via Netlify proxy; model fallback chains in geminiModels.js</p>
+<p><strong>Technical match:</strong> Split render vs cognition; no on-device LLM continuity</p>
+<p><strong>Gap:</strong> No encrypted neural tunnel abstraction in code</p>
+<p><strong>Evidence:</strong> <code>src/apiProxy.js, netlify/functions/gemini.mjs</code></p>
+
+<h3>Invisible / steganographic encoding <span class="tag">🔴 NOT FOUND</span></h3>
+<p><strong>[DISCLOSED IN PROVISIONAL]</strong> Non-human-perceptible embedded signatures (pp. 9, 21–22)</p>
+<p><strong>[CURRENTLY IMPLEMENTED]</strong> NOT FOUND</p>
+<p><strong>Technical match:</strong> N/A</p>
+<p><strong>Gap:</strong> R&amp;D / manufacturing embodiment</p>
+<p><strong>Evidence:</strong> <code>NOT FOUND IN CODEBASE</code></p>
+
+<h3>Geospatial validator (optional PAP) <span class="tag">🔴 NOT FOUND</span></h3>
+<p><strong>[DISCLOSED IN PROVISIONAL]</strong> 136: optional GPS tether for persona stage-2 (pp. 19–20)</p>
+<p><strong>[CURRENTLY IMPLEMENTED]</strong> Geolocation for tone only in myraPrompt liveContext — not auth gate</p>
+<p><strong>Technical match:</strong> Location used for voice tier not geofence auth</p>
+<p><strong>Gap:</strong> No backend registry coordinate check</p>
+<p><strong>Evidence:</strong> <code>src/myraPrompt.js buildOpeningLiveContext</code></p>
+
+<h3>Commerce engine / in-experience payment <span class="tag">🔴 NOT FOUND</span></h3>
+<p><strong>[DISCLOSED IN PROVISIONAL]</strong> 132: volumetric twins + biometric payment (pp. 19)</p>
+<p><strong>[CURRENTLY IMPLEMENTED]</strong> NOT FOUND</p>
+<p><strong>Technical match:</strong> N/A</p>
+<p><strong>Gap:</strong> Future embodiment</p>
+<p><strong>Evidence:</strong> <code>NOT FOUND</code></p>
+
+<h3>Three-layer verify (product naming) <span class="tag">🟡 PARTIAL</span></h3>
+<p><strong>[DISCLOSED IN PROVISIONAL]</strong> Tri-layer matrix 116A/B/C (throughout)</p>
+<p><strong>[CURRENTLY IMPLEMENTED]</strong> LAYER1 product ID, LAYER2 liveness, LAYER3 frame — all via Gemini text protocol</p>
+<p><strong>Technical match:</strong> Naming aligns; technology stack differs radically from patent figures</p>
+<p><strong>Gap:</strong> Layers are prompt partitions not hardware pipelines</p>
+<p><strong>Evidence:</strong> <code>src/myraVerify.js; App.jsx [Scan] 3-layer verify logs</code></p>
+
+<h3>QR / barcode as identity embodiment <span class="tag">🟡 PARTIAL</span></h3>
+<p><strong>[DISCLOSED IN PROVISIONAL]</strong> Explicit QR/barcode in Layer B (pp. 9, 21–22)</p>
+<p><strong>[CURRENTLY IMPLEMENTED]</strong> Printed HOJ- alphanumeric read by vision — no QR library</p>
+<p><strong>Technical match:</strong> Machine-readable identity concept; implementation is OCR-like VLM</p>
+<p><strong>Gap:</strong> No dedicated symbology decode</p>
+<p><strong>Evidence:</strong> <code>src/myraVerify.js — no jsQR/zxing</code></p>
+
+<h3>Anti-spoof (photo / screen / print) <span class="tag">🟡 PARTIAL</span></h3>
+<p><strong>[DISCLOSED IN PROVISIONAL]</strong> 116C + Layer C rejection of 2D replicas (pp. 10, 14)</p>
+<p><strong>[CURRENTLY IMPLEMENTED]</strong> PHOTO_SPOOF from LAYER2; dashboard verifyFailPhotoSpoof counter</p>
+<p><strong>Technical match:</strong> Operational UX path exists; accuracy not measured</p>
+<p><strong>Gap:</strong> No structured replay attack test matrix</p>
+<p><strong>Evidence:</strong> <code>src/myraVerify.js; AdminDashboard analytics</code></p>
+
+<h3>Hardware-agnostic browser client <span class="tag">🟢 MATCHED</span></h3>
+<p><strong>[DISCLOSED IN PROVISIONAL]</strong> Smartphone / HMD / spatial interfaces (pp. 7, 21)</p>
+<p><strong>[CURRENTLY IMPLEMENTED]</strong> React PWA-style web app; mobile browser camera + Web Speech / optional Deepgram</p>
+<p><strong>Technical match:</strong> Browser-first HOJ pilot demonstrates agnostic client</p>
+<p><strong>Gap:</strong> No native HMD build in repo</p>
+<p><strong>Evidence:</strong> <code>src/App.jsx, src/mobileBrowser.js</code></p>
+
+<h3>Per-unit authorization before AI session <span class="tag">🟢 MATCHED</span></h3>
+<p><strong>[DISCLOSED IN PROVISIONAL]</strong> Fusion authorizes generative interaction (pp. 11–12, 15)</p>
+<p><strong>[CURRENTLY IMPLEMENTED]</strong> isVerified gates mic/chat; verifyLockedRef one verify per AR session</p>
+<p><strong>Technical match:</strong> Clear session authorization after verify + ledger prefetch</p>
+<p><strong>Gap:</strong> Fusion not cryptographically evidenced</p>
+<p><strong>Evidence:</strong> <code>App.jsx isVerified, sendMyraUserMessage gates</code></p>
+
+<h3>Royalty / automated settlement <span class="tag">🔴 NOT FOUND</span></h3>
+<p><strong>[DISCLOSED IN PROVISIONAL]</strong> 138 royalty attribution engine; smart contracts (pp. 15–16, 19)</p>
+<p><strong>[CURRENTLY IMPLEMENTED]</strong> NOT FOUND</p>
+<p><strong>Technical match:</strong> N/A</p>
+<p><strong>Gap:</strong> Business layer in patent only</p>
+<p><strong>Evidence:</strong> <code>NOT FOUND</code></p>
+
+<h3>Social story / reel capture (product feature) <span class="tag">🟣 NEW DEVELOPMENT</span></h3>
+<p><strong>[DISCLOSED IN PROVISIONAL]</strong> NOT DISCLOSED IN PROVISIONAL</p>
+<p><strong>[CURRENTLY IMPLEMENTED]</strong> reelCapture.js, ReelRecordHud, MYRA_SOCIAL_STORY_MODE in myraPrompt.js</p>
+<p><strong>Technical match:</strong> Post-prototype product feature — not patent-mapped unless added in complete spec</p>
+<p><strong>Gap:</strong> Attorney: implementation detail vs new matter</p>
+<p><strong>Evidence:</strong> <code>src/reelCapture.js, src/App.jsx reelRecord</code></p>
+
+
+<h2>Part 4 — Invention vs implementation technology</h2>
+<table>
+<thead><tr><th>Category</th><th>AKXERAI architecture (keep for claims discussion)</th><th>Replaceable vendor stack</th></tr></thead>
+<tbody>
+<tr><td>Identity path</td><td>Physical scan → unit code → ledger authorization</td><td>Gemini vision vs other VLM; printed HOJ- vs QR decode</td></tr>
+<tr><td>Anti-spoof</td><td>Multi-signal gate before session</td><td>Prompt-based liveness vs NPU/material CV</td></tr>
+<tr><td>Persona</td><td>Product-bound stateful generative agent + voice</td><td>Gemini, Inworld, ElevenLabs, MindAR, Three.js</td></tr>
+<tr><td>Economic control</td><td>Per-unit metering + prepaid pools</td><td>Supabase vs other DB; wallet in brand_accounts</td></tr>
+</tbody>
+</table>
+<p class="disclaimer">Technical scope to discuss with patent attorney — not a legal conclusion.</p>
+
+<h2>Part 5 — Design-around analysis</h2>
+<table><thead><tr><th>Element</th><th>Design-around risk</th><th>Why</th></tr></thead><tbody><tr><td>Cloud VLM verify</td><td>HIGH</td><td>Competitor can swap Gemini for any vision API with similar prompts</td></tr><tr><td>MindAR tracking</td><td>HIGH</td><td>Any AR SDK / custom CV for planar anchor</td></tr><tr><td>Postgres ledger</td><td>HIGH</td><td>Any registry with per-unit rows</td></tr><tr><td>Multi-layer gating before AI</td><td>MEDIUM</td><td>Concept of staged auth before generative session is broader than HOJ prompts</td></tr><tr><td>Sender/receiver memory on same code</td><td>MEDIUM</td><td>Product pattern; patent does not detail HOJ gift flow</td></tr><tr><td>Layer B ties identity to commercial quota</td><td>LOW–MEDIUM</td><td>Explicit in provisional pp. 11, 15 — if claimed at architecture level</td></tr></tbody></table>
+
+<h2>Part 6 — 5-month buildability (selected rows)</h2>
+<table><thead><tr><th>Feature</th><th>Status</th><th>Feasibility</th><th>Time</th><th>Notes</th></tr></thead><tbody><tr><td>Documented A/B/C test suite + logs</td><td>🟡</td><td>🟢</td><td>2–3 w</td><td>Evidence for attorney; no new hardware</td></tr><tr><td>Structured spoof test matrix (photo/screen/print)</td><td>🟡</td><td>🟡</td><td>4–6 w</td><td>Measure false accept/reject; still VLM</td></tr><tr><td>Runtime budget enforcement gate</td><td>🔴</td><td>🟢</td><td>1–2 w</td><td>Engineering only</td></tr><tr><td>Formal fusion state machine + audit log</td><td>🟡</td><td>🟢</td><td>2–4 w</td><td>Software embodiment of fusion 118</td></tr><tr><td>NPU microtexture Layer C</td><td>🔴</td><td>🔴</td><td>5+ mo</td><td>NOT REALISTIC TO PROMISE IN 5 MONTHS</td></tr><tr><td>Blockchain/DID royalty engine</td><td>🔴</td><td>🔴</td><td>R&amp;D</td><td>Future embodiment or separate project</td></tr><tr><td>Steganographic unit payload</td><td>🔴</td><td>🔴</td><td>R&amp;D</td><td>Manufacturing + CV research</td></tr><tr><td>On-device SLM fallback</td><td>🔴</td><td>🟠</td><td>3–5 mo</td><td>High risk on small team</td></tr></tbody></table>
+
+<div class="page-break"></div>
+<h2>Part 7 — 5-month roadmap (adapted)</h2>
+<h3>Month 1</h3>
+<ul><li>Baseline demo record; verify regression set; map MindAR vs verify decoupling; attorney evidence folder structure.</li></ul>
+<h3>Month 2</h3>
+<ul><li>Fusion spec doc + code-aligned gates; unknown-code / PAIR_FULL tests; budget column enforcement design.</li></ul>
+<h3>Month 3</h3>
+<ul><li>Spoof corpus tests (photo, screen, print); log LAYER outcomes; dashboard export of verify failures.</li></ul>
+<h3>Month 4</h3>
+<ul><li>Ledger/quota hard gates; observability; memory/summary QA; optional QR decode path as alt embodiment demo.</li></ul>
+<h3>Month 5</h3>
+<ul><li>Freeze architecture doc + evidence bundle; complete-spec handoff deck; recorded demo video with dated logs.</li></ul>
+
+<h2>Part 8 — Team</h2>
+<p><strong>Minimum team (5 mo):</strong> 1 full-stack (founder+engineer), 1 CV/ML contractor (part-time mo 2–4 for spoof tests), patent technical advisor (review only).</p>
+<p><strong>Ideal team:</strong> + dedicated backend/security (budget gates), + QA (test matrices), AR engineer part-time (MindAR hardening).</p>
+
+<h2>Part 9 — Evidence checklist (sample)</h2>
+<table><thead><tr><th>Evidence</th><th>Why</th><th>When</th><th>Store</th></tr></thead><tbody><tr><td>Verify outcome logs per layer</td><td>Prove multi-layer gate</td><td>Each sprint</td><td>docs/evidence/verify-logs/</td></tr><tr><td>Spoof test spreadsheet</td><td>Liveness maturity</td><td>Month 3</td><td>docs/evidence/spoof-matrix/</td></tr><tr><td>Architecture + sequence diagrams</td><td>Attorney enablement</td><td>Month 2</td><td>docs/evidence/diagrams/</td></tr><tr><td>Metering before/after budget gate</td><td>Economic control</td><td>Month 4</td><td>Supabase export + screen</td></tr><tr><td>Dated demo videos</td><td>Reduction to practice</td><td>Monthly</td><td>Secure drive + hash manifest</td></tr></tbody></table>
+
+<h2>Part 10 — Attorney handoff checklist</h2>
+<ul>
+<li>A. Submitted provisional PDF</li>
+<li>B. Working prototype (Netlify/local)</li>
+<li>C. This mapping report + JSON appendix</li>
+<li>D–F. Implemented / partial / future lists in Part 3</li>
+<li>G–I. Experiments + design-arounds in Parts 5–6</li>
+<li>J–O. Questions below; do NOT claim blockchain/NPU as built</li>
+</ul>
+<h3>Questions to ask patent attorney</h3>
+<ol><li>Which prototype features (MindAR+Gemini verify+Supabase ledger) are supported by provisional breadth vs need new examples in complete specification?</li><li>Is Layer C adequately enabled if prototype uses VLM liveness instead of NPU microtexture?</li><li>Should distributed ledger claims be narrowed to “registry engine” including centralized DB embodiments?</li><li>Can HOJ sender/receiver gifting be added as embodiment without new matter risk?</li><li>How to claim fusion without requiring “cryptographic” if prototype uses parsed text gates?</li><li>Are steganographic and QR embodiments sufficiently alternative without proof of each?</li><li>Post-filing: reel/social story mode — separate filing or embodiment?</li><li>What evidence (spoof tests, latency logs) should exist before complete specification?</li><li>Design-around: replace Gemini with another VLM — what architectural steps remain?</li><li>Should Layer B “economic control” tie explicitly to prepaid wallet SaaS in complete spec?</li></ol>
+
+<h2>Part 11 — Three scenarios (5 months)</h2>
+<table><thead><tr><th>Scenario</th><th>Delivers</th><th>Team</th><th>Risk</th></tr></thead><tbody><tr><td>A Conservative</td><td>Docs, tests, budget gate, evidence folder</td><td>1–2</td><td>Low</td></tr><tr><td>B Realistic</td><td>A + spoof matrix + fusion audit log + QR alt path demo</td><td>2–3</td><td>Medium</td></tr><tr><td>C Aggressive R&amp;D</td><td>B + material liveness prototype research</td><td>4+</td><td>High — do not tie to complete spec promises</td></tr></tbody></table>
+
+<h2>Part 12 — Core IP reality check</h2>
+<ol>
+<li><strong>Strongest in prototype:</strong> Product-bound Myra persona with sender/receiver memory on verified unit codes.</li>
+<li><strong>Strongest in provisional:</strong> Tri-layer auth + fusion-gated generative persona + ledger/quota abstraction.</li>
+<li><strong>Overlap:</strong> Scan-gated AI session, unit identity, persistent memory, usage accounting.</li>
+<li><strong>Far apart:</strong> NPU liveness, crypto fusion, DID/smart contracts, hardware indexing.</li>
+<li><strong>Demo vs architecture:</strong> Meaningful architecture partially demonstrated — not mere slideshow.</li>
+<li><strong>Third-party heavy:</strong> Gemini, MindAR, Three.js, Inworld, Supabase, Netlify.</li>
+<li><strong>Own orchestration:</strong> Verify protocol, ledger pairing, prompts, metering, dashboard, session roles.</li>
+<li><strong>Biggest weakness:</strong> Liveness not empirically validated; Layer C not implemented.</li>
+<li><strong>Biggest patent-support risk:</strong> Examiner compares claims to prototype and finds only cloud prompts.</li>
+<li><strong>Build next:</strong> Evidence-grade verify/spoof tests + explicit fusion/metering gates.</li>
+<li><strong>Do not waste 5 mo on:</strong> Full blockchain royalty engine, steganographic printing, SoC indexing.</li>
+<li><strong>Take to attorney now:</strong> Mapping table + honesty on Layer C + ledger embodiment breadth.</li>
+</ol>
+
+<div class="page-break"></div>
+<h2>Part 13 — Executive scorecard</h2>
+<div class="score-grid"><div class="score-card"><strong>41/100</strong>Patent Support Readiness<br/>Broad provisional vs narrow implemented path (Gemini+MindAR+Supabase); strong persona/memory, weak C/hardware ledger.</div><div class="score-card"><strong>57/100</strong>Prototype Maturity<br/>End-to-end HOJ pilot works: AR, verify, chat, TTS, ledger, dashboard; not production hardening.</div><div class="score-card"><strong>34/100</strong>Abc Maturity<br/>A=MindAR; B/C=Gemini prompts — not patent hardware stack.</div><div class="score-card"><strong>24/100</strong>Liveness Maturity<br/>VLM heuristic only; no benchmarked spoof suite.</div><div class="score-card"><strong>56/100</strong>Unit Identity Maturity<br/>HOJ codes + vision read + ledger rows.</div><div class="score-card"><strong>31/100</strong>Fusion Auth Maturity<br/>State machine + parse — no crypto fusion.</div><div class="score-card"><strong>71/100</strong>Ai Persona Maturity<br/>Myra prompts, roles, TTS, 3D presence.</div><div class="score-card"><strong>67/100</strong>Memory State Maturity<br/>Summaries, sender/receiver, backfill.</div><div class="score-card"><strong>58/100</strong>Ledger Consumption Maturity<br/>Metering + SQL budgets; weak enforcement.</div><div class="score-card"><strong>19/100</strong>Technical Evidence Maturity<br/>Little formal test logs, diagrams dated to filing.</div><div class="score-card"><strong>54/100</strong>Five Month Feasibility<br/>Can strengthen B/C testing, metering gates, docs — not full NPU/C in 5mo.</div></div>
+
+<h2>Part 14 — One-page action plan</h2>
+<table><thead><tr><th>Horizon</th><th>Owner</th><th>Output</th><th>Success</th></tr></thead><tbody><tr><td>Next 7 days</td><td>Founder</td><td>Run ledger_threads_fresh_start.sql; record baseline demo video</td><td>Clean Kotty verify + chat</td></tr><tr><td>Next 30 days</td><td>Engineer</td><td>20-case verify log spreadsheet</td><td>Layer outcomes captured</td></tr><tr><td>Month 2</td><td>Engineer</td><td>Fusion state doc + budget gate PR</td><td>Blocked chat when cap exceeded (test)</td></tr><tr><td>Month 3</td><td>CV contractor</td><td>Spoof matrix v1</td><td>False accept rate documented</td></tr><tr><td>Month 4</td><td>Engineer</td><td>Architecture PDF + sequence diagrams</td><td>Attorney-ready pack</td></tr><tr><td>Month 5</td><td>Founder+attorney</td><td>Complete spec meeting</td><td>Claim strategy aligned to evidence</td></tr></tbody></table>
+
+<p class="disclaimer">Technical / IP preparation only — not legal advice. Patent attorney must determine patentability, claim scope, and filing strategy.</p>
+</body>
+</html>

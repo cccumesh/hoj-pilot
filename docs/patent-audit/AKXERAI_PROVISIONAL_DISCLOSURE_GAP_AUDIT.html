@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>AKXERAI Provisional Disclosure Gap Audit</title>
+<style>
+@page { size: A4; margin: 14mm 12mm 16mm 12mm; }
+* { box-sizing: border-box; }
+body {
+  font-family: "Segoe UI", system-ui, sans-serif;
+  font-size: 9.5pt;
+  line-height: 1.45;
+  color: #1a1a1a;
+  margin: 0;
+  padding: 0;
+}
+.cover {
+  page-break-after: always;
+  min-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 24mm 8mm;
+}
+.cover h1 { font-size: 22pt; font-weight: 700; margin: 0 0 12px; line-height: 1.2; }
+.cover .sub { font-size: 11pt; color: #444; margin-bottom: 24px; }
+.cover .meta { font-size: 9pt; color: #666; }
+h2 { font-size: 13pt; margin: 22px 0 8px; page-break-after: avoid; border-bottom: 1px solid #ccc; padding-bottom: 4px; }
+h3 { font-size: 10.5pt; margin: 14px 0 6px; page-break-after: avoid; }
+p { margin: 0 0 8px; }
+ul, ol { margin: 0 0 10px 18px; padding: 0; }
+li { margin-bottom: 4px; }
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 7.5pt;
+  margin: 10px 0 14px;
+  page-break-inside: auto;
+}
+th, td {
+  border: 1px solid #bbb;
+  padding: 4px 5px;
+  vertical-align: top;
+  text-align: left;
+}
+th { background: #f0f0f0; font-weight: 600; }
+tr { page-break-inside: avoid; }
+.legend { font-size: 8pt; background: #f8f8f8; padding: 8px; margin: 8px 0; border-left: 3px solid #333; }
+.disclaimer { font-size: 8pt; color: #555; font-style: italic; margin: 12px 0; }
+pre.diagram {
+  font-family: Consolas, monospace;
+  font-size: 7pt;
+  background: #f5f5f5;
+  padding: 10px;
+  white-space: pre-wrap;
+  border: 1px solid #ddd;
+  margin: 10px 0;
+}
+.score-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin: 12px 0;
+}
+.score-card {
+  border: 1px solid #ccc;
+  padding: 8px;
+  font-size: 8.5pt;
+}
+.score-card strong { font-size: 14pt; display: block; }
+.page-break { page-break-before: always; }
+.toc { font-size: 9pt; }
+.toc li { margin: 3px 0; }
+.tag { font-size: 7pt; font-weight: 600; }
+</style>
+</head>
+<body>
+
+<div class="cover">
+  <h1>AKXERAI — PROVISIONAL PATENT DISCLOSURE GAP AUDIT</h1>
+  <p class="sub">What the filed provisional actually discloses · gaps before complete specification</p>
+  <p class="meta">Primary source: docs/akxerai-book/Provisional Specification.pdf<br/>Generated: 2026-10-12</p>
+  <p class="disclaimer">Technical / IP preparation only — not legal advice. Patent attorney must determine patentability, claim scope, and filing strategy.</p>
+</div>
+
+<h2>Executive summary</h2>
+<p>The provisional <strong>strongly discloses</strong> a broad tri-layer (A/B/C) authentication and fusion-gated generative persona system with optional ledger/DID/quota language, edge-cloud split, privacy engine, and many hardware-forward embodiments. It <strong>does not clearly disclose</strong> the HOJ-specific sender/receiver gifting memory model, prepaid SaaS wallet flow (Economics Playbook), or any vendor-specific stack (Gemini, MindAR, Supabase) — which is appropriate if claims stay architectural.</p>
+<p><strong>Weak zones:</strong> software-level step-by-step relationships (identity→liveness→fusion→session→metering); enablement for “cryptographic” fusion when working example may be prompt gates; gift/recipient product logic; SaaS commercial model linkage to Layer B.</p>
+
+<h2>Methodology</h2>
+<p>Full read of 25-page provisional PDF. Cross-check against codebase <strong>only</strong> to flag <strong>[CURRENT DEVELOPMENT NOT CLEARLY DISCLOSED IN PROVISIONAL]</strong> — prototype features are never treated as disclosed in the filing.</p>
+
+<div class="legend">
+🟢 EXPLICIT · 🟡 BROAD/WEAK · 🟠 IMPLIED · 🔴 NOT FOUND IN PROVISIONAL
+</div>
+
+<h2>§4 — Invention element inventory (summary table)</h2>
+<table><thead><tr><th>Concept</th><th>Disclosure level</th><th>Where in provisional</th><th>Notes</th></tr></thead><tbody><tr><td>Tri-layer detection matrix (A/B/C)</td><td>🟢</td><td>pp. 8–14, 21–22, Abstract</td><td>Core architecture explicitly disclosed</td></tr><tr><td>Fusion engine + progressive validation</td><td>🟢</td><td>pp. 10, 14–15, 21–22</td><td>Cryptographic combine claimed — breadth high</td></tr><tr><td>Layer B economic / quota control</td><td>🟢</td><td>pp. 11, 15</td><td>Tied to generative session authorization</td></tr><tr><td>Visible QR/barcode/patterns</td><td>🟢</td><td>pp. 9, 21–22</td><td>Alternative to steganography</td></tr><tr><td>Steganographic / non-visible encoding</td><td>🟢</td><td>pp. 9, 21–22</td><td>Embodiment — not required to implement all</td></tr><tr><td>NPU microtexture / material liveness</td><td>🟢</td><td>pp. 9–10, 21–22</td><td>Detailed optical features listed</td></tr><tr><td>DID + distributed ledger + smart contracts</td><td>🟢</td><td>pp. 9–10, 15, 21–23</td><td>Broad blockchain wording</td></tr><tr><td>Staged ambassador → generative persona</td><td>🟢</td><td>pp. 14–15, 21–22</td><td>Latency masking embodiment</td></tr><tr><td>Edge-cloud + SLM fallback</td><td>🟢</td><td>pp. 11, 16–17, 21–22</td><td>Multiple connectivity embodiments</td></tr><tr><td>Sovereign privacy / redaction / embeddings</td><td>🟢</td><td>pp. 16–17, 21–22</td><td>Broad privacy engine</td></tr><tr><td>Geospatial validator (optional)</td><td>🟢</td><td>pp. 19–20</td><td>Conditional PAP/geofence</td></tr><tr><td>Sender/receiver gifting narrative</td><td>🔴</td><td>NOT FOUND IN PROVISIONAL</td><td>HOJ collect/deliver is prototype — not in patent text read</td></tr><tr><td>Prepaid B2B SaaS wallet / packages</td><td>🔴</td><td>NOT IN PROVISIONAL</td><td>In Economics Playbook only — business model doc</td></tr><tr><td>Gemini / specific AI vendor</td><td>🔴</td><td>NOT FOUND</td><td>Generic remote multimodal model — good breadth</td></tr><tr><td>MindAR / specific AR SDK</td><td>🔴</td><td>NOT FOUND</td><td>Generic planar tracking language</td></tr><tr><td>Supabase / Postgres</td><td>🔴</td><td>NOT FOUND</td><td>Generic server/ledger engine wording</td></tr><tr><td>Jewellery / House of Jewels brand context</td><td>🔴</td><td>NOT FOUND</td><td>PTE/PAP generic — brand is implementation</td></tr><tr><td>Archivist session_summaries blocks</td><td>🔴</td><td>NOT FOUND</td><td>Prototype memory format — post-filing development</td></tr><tr><td>Two-seat sender/receiver device pairing</td><td>🟠</td><td>IMPLIED via unit identity + memory</td><td>Not explicit HOJ gift flow in provisional</td></tr><tr><td>Commerce / biometric payment engine</td><td>🟢</td><td>p. 19</td><td>Future embodiment — not prototype</td></tr><tr><td>Silicon SoC sub-20ms indexing</td><td>🟢</td><td>pp. 9, 15, 21–23</td><td>Hardware embodiment — high R&amp;D</td></tr><tr><td>IMU gaze-stability gating</td><td>🟢</td><td>pp. 11–12, 15, 21–22</td><td>Specific threshold ranges in places</td></tr><tr><td>Merkle-tree batch registration</td><td>🟡</td><td>p. 18</td><td>Single mention — weak enablement detail</td></tr><tr><td>Relationship: liveness → session gating</td><td>🟡</td><td>Fusion + Layer C rejection</td><td>Implied through fusion; not step-by-step software flow</td></tr><tr><td>Relationship: unit ID → budget/quota</td><td>🟡</td><td>Layer B economic + ledger 120</td><td>Conceptual link strong; software ledger weak detail</td></tr></tbody></table>
+
+<h2>§5 — Concepts adequately disclosed</h2>
+<ul>
+<li>Tri-layer matrix with Layer A planar, Layer B optical identity (visible + steganographic alternatives), Layer C material liveness.</li>
+<li>Fusion engine conditioning persona on multi-layer validation.</li>
+<li>Layer B as economic control for generative resource authorization (pp. 11, 15).</li>
+<li>Decentralized ledger engine with quota and royalty (broad).</li>
+<li>Edge-cloud orchestration, privacy redaction/embeddings, optional geofencing.</li>
+</ul>
+
+<h2>§6 — Under-specified concepts</h2>
+<ul>
+<li><strong>Identity → authorization:</strong> present but software fusion steps not as explicit as method claims on pp. 21–22.</li>
+<li><strong>Unit ID → budget:</strong> linked via Layer B + engine 120; no relational ledger schema.</li>
+<li><strong>Liveness → session:</strong> implied via Layer C failure and fusion; no photo-spoof taxonomy.</li>
+<li><strong>Persona binding:</strong> PTE-bound persona yes; collect/deliver narrative no.</li>
+</ul>
+
+<h2>§7 — Missing from provisional (important)</h2>
+<ul>
+<li>Prepaid B2B wallet / Light-Standard-Deep packages (Economics Playbook only).</li>
+<li>Sender/receiver two-seat device model and Archivist summary format.</li>
+<li>Browser-only PWA deployment as primary embodiment.</li>
+<li>Specific Gemini/Inworld/Netlify implementations.</li>
+</ul>
+
+<div class="page-break"></div>
+<h2>§8 — Reverse audit (prototype → provisional)</h2>
+<table><thead><tr><th>Prototype capability</th><th>In provisional?</th><th>Support</th><th>Attorney discussion</th></tr></thead><tbody><tr><td>Gemini 3-layer verify prompt protocol (LAYER1/2/3 lines)</td><td>🟠</td><td>Generic multi-layer validation — not this prompt format</td><td>Alternative embodiment vs new matter</td></tr><tr><td>MindAR + separate verify frame (decoupled A vs B/C)</td><td>🟡</td><td>Layer A tracking vs identity layers described separately</td><td>Clarify fusion in complete spec + evidence</td></tr><tr><td>Supabase ledger_threads sender/receiver memory</td><td>🔴</td><td>Persistent object memory via ledger engine — not relational schema</td><td>Product embodiment doc vs patent core</td></tr><tr><td>Prepaid per-code AI/voice budgets (SaaS)</td><td>🔴</td><td>Usage quota mentioned abstractly</td><td>Connect quota to Layer B in complete specification</td></tr><tr><td>Inworld TTS + Netlify API proxy</td><td>🔴</td><td>Edge-cloud orchestration generically</td><td>Keep claims architecture-level</td></tr><tr><td>Myra persona prompt / sender-receiver role packs</td><td>🟡</td><td>Generative persona + stateful interaction</td><td>Persona binding to PTE — yes; brand scripts — no</td></tr></tbody></table>
+
+<h2>§9 — Relationship chain audit</h2>
+<table><thead><tr><th>Relationship</th><th>Disclosed?</th><th>Strength</th></tr></thead><tbody><tr><td>Identity → Authentication</td><td>🟢</td><td>Layer B + matrix</td></tr><tr><td>Liveness → Authentication</td><td>🟡</td><td>Layer C described; fusion link broad</td></tr><tr><td>Authentication → AI session</td><td>🟡</td><td>Fusion triggers persona — strong conceptually</td></tr><tr><td>Unit ID → budget/quota</td><td>🟡</td><td>Layer B economic + ledger 120</td></tr><tr><td>Unit ID → memory</td><td>🟠</td><td>Object memory yes; gift threads no</td></tr><tr><td>Physical product → persona</td><td>🟢</td><td>PTE-bound persona core</td></tr></tbody></table>
+
+<h2>§10 — A/B/C audit (what patent says each layer is)</h2>
+<p><strong>Layer A:</strong> Planar pattern recognition + image tracking; 2D signature (NOT merely “MindAR”).</p>
+<p><strong>Layer B:</strong> Unit-level identity from visible encodings OR steganography; neural reconstruction; <em>economic control</em>.</p>
+<p><strong>Layer C:</strong> NPU microtexture/material liveness — not “Gemini LAYER2 prompt”.</p>
+<p><strong>Combination:</strong> Fusion gate authorizes generative session — <strong>clearly disclosed</strong>; implementation crypto combine <strong>not proven</strong> in prototype.</p>
+
+<h2>§11 — Third-party technology audit</h2>
+<p>Provisional generally avoids vendor lock-in (good). Attorney should ensure complete specification does not over-rely on Gemini-only examples in working embodiments.</p>
+
+<h2>§12 — Alternative embodiments in provisional</h2>
+<p>QR/barcode/steganography/visible patterns: <strong>explicitly disclosed</strong>. Cloud vs edge SLM: <strong>disclosed</strong>. Multiple device types: <strong>disclosed</strong>.</p>
+
+<h2>§13 — What may have been worth including (categorized)</h2>
+<p><strong>Category A (core):</strong> Software fusion state machine as alternative to “cryptographic combine”. <strong>B:</strong> Centralized registry as ledger embodiment. <strong>C:</strong> Example verify prompt output format. <strong>D:</strong> Reel/social story — optional product feature.</p>
+
+<h2>§14 — Do not randomly add</h2>
+<ul>
+<li>Generic “AI chatbot” without PTE binding.</li>
+<li>Blockchain buzzwords without embodiment.</li>
+<li>Hardware performance numbers without tests.</li>
+<li>HOJ marketing copy as technical invention.</li>
+</ul>
+
+<h2>§15 — Priority matrix (excerpt)</h2>
+<table><thead><tr><th>Gap</th><th>Priority</th><th>5-month impact</th></tr></thead><tbody><tr><td>Layer C enablement vs VLM prototype</td><td>P0</td><td>🟡 partial validate only</td></tr><tr><td>Ledger: blockchain vs Postgres</td><td>P0</td><td>🟢 document registry embodiment</td></tr><tr><td>Sender/receiver gift flow</td><td>P1</td><td>🟢 engineering evidence; disclosure decision</td></tr><tr><td>SaaS wallet in complete spec</td><td>P1</td><td>🟢 link to Layer B quota</td></tr><tr><td>Steganographic payload</td><td>P3</td><td>🔴 not realistic in 5 mo</td></tr></tbody></table>
+
+<h2>§17 — Questions for patent attorney</h2>
+<ol><li>Map patent Layer A/B/C to prototype (MindAR vs Gemini layers) — avoid examiner confusion</li><li>Decide ledger claims: blockchain vs PostgreSQL registry embodiment</li><li>Liveness: enablement gap if only cloud VLM in working example</li><li>Fusion “cryptographic” language vs software parse gate in prototype</li><li>Sender/receiver gift memory — disclose in complete or keep trade secret</li><li>SaaS wallet/quota — connect to Layer B or separate business method caution</li><li>Staged persona timing vs verify — align figures with actual UX</li><li>Invisible encoding — need prophetic embodiment label?</li><li>Royalty/smart contract — trim or future-only in complete spec</li><li>Evidence plan before non-provisional: spoof matrix, fusion logs, metering tests</li></ol>
+
+<h2>§18 — Patent coverage map</h2>
+<pre class="diagram">                     AKXERAI INVENTION (provisional disclosure)
+                            |
+     -----------------------+------------------------
+     |                       |                        |
+ IDENTITY 🟢            VERIFICATION 🟢            PERSONA 🟢
+ Unit ID 🟢             Liveness 🟢 (NPU)          AI/voice 🟡
+ Visual/QR 🟢          Anti-spoof 🟢              AR manifest 🟡
+ Stegano 🟢 (emb)       Auth 🟡
+     |                       |
+     +----------- FUSION / AUTHORIZATION 🟢 ----------+
+     |                       |
+ SESSION 🟡              LEDGER/QUOTA 🟢 (broad)
+ (software)             DID/smart contract 🟢 (not built)
+     |
+ EXPERIENCE / GIFT FLOW 🔴 (prototype-only)
+ ANALYTICS 🟡</pre>
+
+<h2>§19 — Executive conclusion</h2>
+<ol>
+<li>Clearly covers: tri-layer + fusion-gated persona + ledger/quota abstraction + many alternatives.</li>
+<li>Broad only: software fusion steps, SaaS wallet, gifting memory.</li>
+<li>Ambiguous: crypto combine vs app-level gates; relational ledger vs blockchain.</li>
+<li>Missing: HOJ sender/receiver, prepaid packages, vendor stack.</li>
+<li>Prototype has: Gemini verify protocol, Supabase schema, Myra prompts — mostly <strong>post-filing implementation</strong> or <strong>not disclosed</strong>.</li>
+<li>Top gaps for attorney: Layer C enablement, ledger breadth, gift flow, economic control evidence.</li>
+</ol>
+
+<h2>Top 10 attorney discussion items</h2>
+<ol><li>Map patent Layer A/B/C to prototype (MindAR vs Gemini layers) — avoid examiner confusion</li><li>Decide ledger claims: blockchain vs PostgreSQL registry embodiment</li><li>Liveness: enablement gap if only cloud VLM in working example</li><li>Fusion “cryptographic” language vs software parse gate in prototype</li><li>Sender/receiver gift memory — disclose in complete or keep trade secret</li><li>SaaS wallet/quota — connect to Layer B or separate business method caution</li><li>Staged persona timing vs verify — align figures with actual UX</li><li>Invisible encoding — need prophetic embodiment label?</li><li>Royalty/smart contract — trim or future-only in complete spec</li><li>Evidence plan before non-provisional: spoof matrix, fusion logs, metering tests</li></ol>
+
+<p class="disclaimer">Technical / IP preparation only — not legal advice. Patent attorney must determine patentability, claim scope, and filing strategy.</p>
+</body>
+</html>

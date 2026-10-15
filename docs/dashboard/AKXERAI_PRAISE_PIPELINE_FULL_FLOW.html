@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>AKXERAI Praise Pipeline — Full Data Flow</title>
+<style>
+@page { size: A4; margin: 12mm 11mm 14mm 11mm; }
+body { font-family: "Segoe UI", system-ui, sans-serif; font-size: 9pt; line-height: 1.45; color: #111; margin: 0; }
+.cover { page-break-after: always; padding: 18mm 4mm; }
+.cover h1 { font-size: 20pt; margin: 0 0 8px; }
+.cover .sub { font-size: 10.5pt; color: #333; margin-bottom: 16px; }
+.cover .meta { font-size: 8.5pt; color: #555; }
+h2 { font-size: 12pt; margin: 18px 0 6px; border-bottom: 1px solid #aaa; page-break-after: avoid; }
+h3 { font-size: 10pt; margin: 12px 0 4px; page-break-after: avoid; }
+p, li { margin: 0 0 6px; }
+ul, ol { margin: 0 0 8px 16px; }
+table { width: 100%; border-collapse: collapse; font-size: 7.8pt; margin: 8px 0 12px; }
+th, td { border: 1px solid #999; padding: 4px 5px; vertical-align: top; }
+th { background: #eee; }
+pre {
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 7pt;
+  background: #f4f4f4;
+  border: 1px solid #ccc;
+  padding: 8px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin: 8px 0;
+}
+code { font-family: Consolas, monospace; font-size: 7.5pt; background: #eee; padding: 0 3px; }
+.callout { background: #fff8e6; border-left: 4px solid #c9a227; padding: 8px; margin: 8px 0; font-size: 8.5pt; }
+.diagram { page-break-inside: avoid; }
+.page-break { page-break-before: always; }
+.toc li { margin-bottom: 3px; }
+</style>
+</head>
+<body>
+
+<div class="cover">
+  <p class="meta">AKXERAI · House of Jewels Pilot · Internal handoff doc</p>
+  <h1>Brand Praise / Brand Issues /<br/>Akxerai Praise / Akxerai Issues<br/>Complete Pipeline Reference</h1>
+  <p class="sub">For engineers and AI assistants (e.g. ChatGPT): trace from live user chat → Archivist Gemini → Supabase → parsers → Admin Dashboard tiles. No code changes in this document — behaviour as implemented in repo.</p>
+  <p class="meta">Generated: 2026-10-14<br/>
+  Key files: <code>src/myraSummarize.js</code>, <code>src/myraLedger.js</code>, <code>src/brandDashboard.js</code>, <code>src/AdminDashboard.jsx</code>, <code>src/App.jsx</code><br/>
+  Supabase table: <code>ledger_threads</code> (env <code>VITE_SUPABASE_LEDGER_TABLE</code>)</p>
+</div>
+
+<h2>Table of contents</h2>
+<ol class="toc">
+  <li>Executive summary</li>
+  <li>End-to-end flow diagram</li>
+  <li>Session end — entry points</li>
+  <li>Archivist Gemini — system + user prompt</li>
+  <li>Expected Archivist output schema</li>
+  <li>Supabase storage format</li>
+  <li>Repair, fallback, fastExit</li>
+  <li>Dashboard load + backfill</li>
+  <li>Parser functions + expected formats</li>
+  <li>Dashboard aggregation → UI tiles</li>
+  <li>Semantic vs keyword search</li>
+  <li>Known mismatches / failure modes</li>
+  <li>Worked example (multi-signal utterance)</li>
+  <li>Diagnosis A–F + recommended fixes (not implemented)</li>
+</ol>
+
+<h2>1. Executive summary</h2>
+<p>The Admin Dashboard <strong>does not</strong> scan raw <code>conversation</code> text with keyword regex for brand/Akxerai praise or issues. It reads <strong>structured labels</strong> written by a dedicated Gemini call (the <strong>Archivist</strong>) at scan end into <code>session_summaries</code>. If that call never runs or output is replaced by <strong>local_fallback</strong>, dashboard tiles stay empty until <strong>backfill</strong> on dashboard load re-runs the same Archivist.</p>
+<div class="callout"><strong>Golden rule:</strong> conversation → (optional) Archivist → session_summaries labeled blocks → parseLabeledQuoteBlock / parseAkxeraiExperienceFeedback → buildBrandDashboardAnalytics → Overview tiles.</div>
+
+<h2>2. End-to-end flow diagram</h2>
+<pre class="diagram">[User speaks in AR app]
+        │
+        ▼
+appendLedgerMessage() ──► ledger_threads.conversation  (myra:/sender:/receiver: lines)
+        │
+        ▼
+Session ends ──► finishLedgerScan()  [App.jsx endExperience OR pagehide fastExit]
+        │
+        ├─ fastExit=true ──► buildLocalStorySummary()  (all dashboard blocks = none, SOURCE: local_fallback)
+        │
+        └─ normal path ──► buildSessionSummaryAndPraise()
+                │
+                ▼
+            summarizeSessionDialogue()
+                system: MYRA_SESSION_SUMMARY_SYSTEM
+                user: role-specific + THIS SCAN CHAT LOG
+                models: SUMMARY_MODEL_CHAIN (gemini-3.6-flash → lite)
+                │
+                ▼
+            repairSessionSummaryFromDialogue()  (may REPLACE Gemini with local if digest invalid)
+                │
+                ▼
+            enrichSessionSummary()
+                │
+                ▼
+            parseBrandProductPraise(enriched)  ──► praise shortcuts
+            parseAkxeraiPraiseFromSummary(enriched)
+                │
+                ▼
+            buildSessionSummaryEntry() ──► append to session_summaries column
+            buildSessionConversationFooter() ──► session-praise (brand only) in conversation
+                │
+                ▼
+        Supabase UPDATE ledger_threads { conversation, session_summaries }
+
+[DASHBOARD LOGIN]
+        │
+        ▼
+fetchBrandLedgerThreads('house-of-jewels')
+        │
+        ▼
+backfillThreadSummariesFromConversation()  (if summary missing / local_fallback / thin digest)
+        │     └── same buildSessionSummaryAndPraise() → Archivist again
+        ▼
+buildBrandDashboardAnalytics(threads)
+        │     └── buildDashboardAnalytics per code → parseSessionSummaryDetails + merge conversation footers
+        │     └── for each session: parseBrandProductPraise, parseBrandProductCriticism,
+        │         parseAkxeraiPraiseFromSummary, parseAkxeraiExperienceFeedback, parseDiscoveryFromSummary
+        ▼
+AdminDashboard Overview tiles: Brand praise | Akxerai praise | Brand issues | Akxerai issues</pre>
+
+<h2>3. Session end — entry points</h2>
+<table>
+<tr><th>Trigger</th><th>File</th><th>Function</th><th>Archivist?</th></tr>
+<tr><td>User exits experience normally</td><td>App.jsx</td><td>endExperience() → finishLedgerScan()</td><td>Yes (await Gemini)</td></tr>
+<tr><td>Tab close / pagehide</td><td>App.jsx</td><td>finishLedgerScan({ fastExit: true })</td><td>No — local only</td></tr>
+<tr><td>Dashboard Refresh</td><td>AdminDashboard.jsx</td><td>backfillThreadSummariesFromConversation()</td><td>Yes per missing/bad scan summary</td></tr>
+</table>
+<p>Core orchestrator: <code>finishLedgerScan()</code> in <code>myraLedger.js</code>. Reads thread row, extracts dialogue between <code>--- session N start ---</code> and end, calls <code>buildSessionSummaryAndPraise()</code> unless fastExit or summary already exists for that scan number.</p>
+
+<div class="page-break"></div>
+<h2>4. Archivist Gemini — prompts</h2>
+<h3>4.1 System instruction (constant)</h3>
+<p>Export: <code>MYRA_SESSION_SUMMARY_SYSTEM</code> in <code>myraSummarize.js</code>. Passed as <code>systemInstruction</code> in <code>requestSummary()</code>. Role: "Akxerai Soul Ledger Archivist — NOT Myra."</p>
+<p><strong>Dashboard-relevant section (verbatim intent from code):</strong></p>
+<pre>DASHBOARD SIGNALS — MISSION INSIGHTS (concept labels, not keyword lists)
+Purpose: leadership reads ONLY these labeled blocks. The app does NOT search chat for words.
+
+DISCOVERY — how user found House of Jewels / product
+  If yes: DISCOVERY: yes | "exact user words from log"
+  If none: DISCOVERY: none
+
+BRAND PRODUCT PRAISE — HOJ product, showroom, staff, packaging, shop trust
+  If yes: BRAND PRODUCT PRAISE: yes | "exact user words from log"
+  If none: BRAND PRODUCT PRAISE: none
+
+AKXERAI PRAISE — Myra persona, digital keepsake delight
+  If yes: AKXERAI PRAISE: yes | "exact user words"
+  If none: AKXERAI PRAISE: none
+
+BRAND PRODUCT CRITICISM — shop/product dissatisfaction
+  If yes: BRAND PRODUCT CRITICISM: yes | "exact user words from log"
+  If none: BRAND PRODUCT CRITICISM: none
+
+AKXERAI EXPERIENCE FEEDBACK — positive OR negative on AI/tech (not jewellery counter)
+  Categories: persona | voice | scan_flow | ar_vr | speed | trust | other
+  If none: AKXERAI EXPERIENCE FEEDBACK: none
+  If yes: AKXERAI EXPERIENCE FEEDBACK: positive | category: &lt;cat&gt; | "exact user words"
+     or: AKXERAI EXPERIENCE FEEDBACK: negative | category: &lt;cat&gt; | "exact user words"
+
+MYRA BRAND LINES — Myra lines as HOJ brand voice (bullets) or none
+
+CLASSIFICATION DISCIPLINE:
+• Same quote must not appear in two dashboard blocks.
+• One user quote → at most one primary block (mixed monologue → strongest fit or none for all three).
+• Prefer none over weak label.</pre>
+
+<h3>4.2 User prompt (per call)</h3>
+<p>Function: <code>summarizeSessionDialogue({ dialogue, roleKey, scanNumber, priorSummaries })</code></p>
+<p><strong>Sender</strong> user prompt ends with: output THREAD: Sender, DIALOGUE DIGEST, MYRA LAST STATE, SESSION END, then DISCOVERY, BRAND PRODUCT PRAISE, BRAND PRODUCT CRITICISM, AKXERAI PRAISE, AKXERAI EXPERIENCE FEEDBACK, MYRA BRAND LINES.</p>
+<p><strong>Receiver</strong> user prompt: THREAD: Receiver, SCAN CONVERSATION (verbatim myra+receiver), same dashboard headers.</p>
+<p>Input body: labelled log lines only from current scan. Optional prior summaries truncated (~5000 chars).</p>
+<h3>4.3 Model chain</h3>
+<p><code>SUMMARY_MODEL_CHAIN</code> = gemini-3.6-flash, then gemini-3.5-flash-lite, gemini-3.1-flash-lite. maxOutputTokens 8192, temperature 0.25. Production uses Netlify proxy when USE_API_PROXY.</p>
+
+<h2>5. Expected Archivist output (logical schema)</h2>
+<ol>
+<li>THREAD: Sender | Receiver</li>
+<li>Sender: DIALOGUE DIGEST (myra short labels; sender full quoted lines with light STT cleanup)</li>
+<li>Receiver: SCAN CONVERSATION (full verbatim myra + receiver)</li>
+<li>MYRA LAST STATE (was_asking, user_answered; was_teasing on receiver)</li>
+<li>SESSION END (reason, detail, last_user_line, resume_hint)</li>
+<li>All DASHBOARD SIGNAL blocks listed above</li>
+</ol>
+<p>Plain text only — no markdown.</p>
+
+<h2>6. Supabase storage format</h2>
+<h3>6.1 Column: session_summaries</h3>
+<p>Multiple scans appended. Each scan = envelope from <code>buildSessionSummaryEntry()</code>:</p>
+<pre>--- session 2 summary (Sender) ---
+date: ...
+started: ...
+ended: ...
+duration: 1 min 30 sec
+return_gap: ...                    (optional)
+summary:
+&lt;FULL ARCHIVIST BODY — multiline&gt;
+brand_praise: "..."               (optional — only if parse at save time)
+praise: "..."                     (duplicate shortcut)
+axerai_praise: "..."              (optional — also reads akxerai_praise alias)</pre>
+<p><strong>Not stored as top-level shortcuts:</strong> brand criticism, discovery, Akxerai experience feedback, Myra brand lines — only inside <code>summary:</code> body.</p>
+<h3>6.2 Column: conversation</h3>
+<p>After scan end footer:</p>
+<pre>--- session N end ---
+session-started: ...
+session-ended: ...
+session-duration: ...
+session-view-ar-seconds: ...       (optional)
+session-praise: "..."              (optional — BRAND praise only, from save-time parse)</pre>
+
+<div class="page-break"></div>
+<h2>7. Repair, fallback, fastExit</h2>
+<h3>7.1 repairSessionSummaryFromDialogue()</h3>
+<p>After Gemini returns text, validates THREAD label, sender digest line count, receiver SCAN CONVERSATION. If invalid or too thin → <strong>replaces entire output</strong> with <code>buildLocalStorySummary()</code> which sets:</p>
+<pre>DISCOVERY: none
+BRAND PRODUCT PRAISE: none
+AKXERAI PRAISE: none
+BRAND PRODUCT CRITICISM: none
+AKXERAI EXPERIENCE FEEDBACK: none
+MYRA BRAND LINES: none
+SOURCE: local_fallback</pre>
+<p>Even if Gemini had correct praise blocks, they are lost on this fallback path.</p>
+<h3>7.2 Gemini failure</h3>
+<p><code>buildSessionSummaryAndPraise</code> catch → same local fallback; log: "local fallback summary — brand praise requires Gemini".</p>
+<h3>7.3 fastExit (pagehide)</h3>
+<p>Never calls Archivist. Same local_fallback body. Dashboard tiles empty until backfill.</p>
+<h3>7.4 summaryEntryNeedsRebuild()</h3>
+<p>Backfill re-runs Archivist if summary contains <code>SOURCE: local_fallback</code>, empty digest, missing sender lines in DIALOGUE DIGEST, etc.</p>
+
+<h2>8. Dashboard load + backfill</h2>
+<p>AdminDashboard.jsx on auth: for each ledger row with scan_count &gt; 0 and conversation containing <code>--- session</code>, calls <code>backfillThreadSummariesFromConversation(thread, role)</code>.</p>
+<p>For each ended scan with user speech: if summary missing or needs rebuild → <code>buildSessionSummaryAndPraise</code> (same Archivist) → UPDATE session_summaries in Supabase.</p>
+
+<h2>9. Parser functions</h2>
+<table>
+<tr><th>Dashboard signal</th><th>Function</th><th>Input</th></tr>
+<tr><td>Brand praise</td><td>parseBrandProductPraise</td><td>Archivist body; label BRAND PRODUCT PRAISE</td></tr>
+<tr><td>Brand issues</td><td>parseBrandProductCriticism</td><td>label BRAND PRODUCT CRITICISM</td></tr>
+<tr><td>Akxerai praise</td><td>parseAkxeraiPraiseFromSummary</td><td>AKXERAI PRAISE or legacy AXERAI PRAISE</td></tr>
+<tr><td>Akxerai ± experience</td><td>parseAkxeraiExperienceFeedback</td><td>pipe format positive/negative | category | "quote"</td></tr>
+<tr><td>Discovery</td><td>parseDiscoveryFromSummary</td><td>DISCOVERY (same yes|quote helper)</td></tr>
+<tr><td>Brand prompt tab</td><td>parseMyraBrandLinesFromSummary</td><td>MYRA BRAND LINES bullets</td></tr>
+</table>
+<h3>9.1 parseLabeledQuoteBlock (praise, criticism, discovery)</h3>
+<pre>Accepts:
+  LABEL: none
+  LABEL: yes | "single line quote"
+  LABEL: yes - "quote"  (loose)
+  LABEL: "quote"        (direct)
+Quote max 220 chars in parser output.</pre>
+<h3>9.2 parseAkxeraiExperienceFeedback</h3>
+<pre>AKXERAI EXPERIENCE FEEDBACK: none
+AKXERAI EXPERIENCE FEEDBACK: negative | category: voice | "the voice was a little slow"
+(Does NOT use "yes |" pattern)</pre>
+<h3>9.3 parseSessionSummaryDetails (myraLedger.js)</h3>
+<p>Splits session_summaries envelopes, extracts summary body via extractSummaryBodyFromSessionBlock, merges shortcut lines brand_praise/praise/axerai_praise with parser results into session rows used by buildDashboardAnalytics.</p>
+
+<h2>10. Dashboard aggregation → UI tiles</h2>
+<p><code>buildBrandDashboardAnalytics()</code> in brandDashboard.js:</p>
+<ul>
+<li>Per verification code, per session in buildDashboardAnalytics.sessions</li>
+<li>summaryText = session.summary (Archivist body)</li>
+<li>brandPraiseQuote = session.brandPraiseQuote || parseBrandProductPraise(summaryText).quote</li>
+<li>brandCriticismQuote = parseBrandProductCriticism(summaryText).quote (no envelope shortcut)</li>
+<li>akxeraiPraiseQuote = session shortcut || parseAkxeraiPraiseFromSummary</li>
+<li>akxeraiFeedback[] from parseAkxeraiExperienceFeedback when detected</li>
+<li>Push into arrays: brandPraise[], brandCriticism[], akxeraiPraise[], akxeraiFeedback[], brandDiscovery[]</li>
+</ul>
+<h3>Overview tiles (AdminDashboard OverviewView)</h3>
+<table>
+<tr><th>Tile</th><th>Data source</th></tr>
+<tr><td>Brand praise count</td><td>brand.brandPraise.length (tap → sheet)</td></tr>
+<tr><td>Akxerai praise count</td><td>brand.akxeraiPraiseCount (= akxeraiPraise array length only)</td></tr>
+<tr><td>Brand issues</td><td>brand.brandCriticism.length</td></tr>
+<tr><td>Akxerai issues</td><td>akxeraiFeedback where sentiment === 'negative' (NOT akxeraiPraise)</td></tr>
+</table>
+<p><strong>Note:</strong> Positive AKXERAI EXPERIENCE FEEDBACK counts on Akxerai tab sentiment but NOT on Overview "Akxerai praise" tile.</p>
+<p>Comment in brandDashboard.js: "Archivist concept blocks in session_summaries only — no keyword scan on raw conversation."</p>
+
+<div class="page-break"></div>
+<h2>11. Semantic vs keyword</h2>
+<p><strong>Design (A):</strong> Semantic — Archivist classifies by meaning into labeled blocks.</p>
+<p><strong>Actual (C) mixture:</strong></p>
+<ul>
+<li>Primary: parse labeled blocks from session_summaries body (A)</li>
+<li>Shortcuts: brand_praise / axerai_praise lines in envelope (A)</li>
+<li>conversation footer session-praise merges brand quote only (not keyword mine of dialogue)</li>
+<li>Raw conversation dialogue NOT regex-scanned for "staff" / "Myra" etc. on dashboard path (B avoided)</li>
+</ul>
+
+<h2>12. Known mismatches / failure modes</h2>
+<ol>
+<li><strong>Prompt conflict:</strong> "one quote → one block" / "mixed → none for all three" vs product need for multiple tiles from one utterance.</li>
+<li><strong>local_fallback + fastExit:</strong> all signals none → empty tiles until backfill.</li>
+<li><strong>repairSessionSummaryFromDialogue:</strong> digest validation failure wipes Gemini dashboard blocks.</li>
+<li><strong>Parser:</strong> strict single-line yes | "quote"; multiline or missing yes fails.</li>
+<li><strong>UI:</strong> Overview Akxerai praise ignores positive experience feedback.</li>
+<li><strong>Storage:</strong> criticism/negative feedback not duplicated as top-level fields — lost if body truncated.</li>
+</ol>
+
+<h2>13. Worked example</h2>
+<p><strong>User (sender):</strong> "The jewellery is beautiful and the showroom staff was very helpful. Myra was really fun, but the voice was a little slow."</p>
+<h3>Ideal Archivist output (if rules allow split slices)</h3>
+<pre>BRAND PRODUCT PRAISE: yes | "The jewellery is beautiful and the showroom staff was very helpful."
+BRAND PRODUCT CRITICISM: none
+AKXERAI PRAISE: yes | "Myra was really fun"
+AKXERAI EXPERIENCE FEEDBACK: negative | category: voice | "the voice was a little slow"
+DISCOVERY: none</pre>
+<h3>After save</h3>
+<p>session_summaries envelope with summary body + brand_praise shortcut + axerai_praise shortcut; conversation footer session-praise with brand quote.</p>
+<h3>Dashboard</h3>
+<ul>
+<li>Brand praise: +1</li>
+<li>Brand issues: 0</li>
+<li>Akxerai praise: +1</li>
+<li>Akxerai issues: +1 (negative voice feedback)</li>
+</ul>
+<p>If local_fallback ran instead: all counts 0 until dashboard backfill succeeds with real Archivist output.</p>
+
+<h2>14. Diagnosis A–F (for fix planning — not implemented)</h2>
+<table>
+<tr><th>ID</th><th>Item</th></tr>
+<tr><td>A</td><td><strong>Current Gemini prompt:</strong> MYRA_SESSION_SUMMARY_SYSTEM + summarizeSessionDialogue user prompt; explicit six dashboard block types; meaning-based classification.</td></tr>
+<tr><td>B</td><td><strong>Current output format:</strong> Plain-text headers; praise/criticism/discovery use yes | "quote" or none; experience feedback uses positive|negative | category | "quote".</td></tr>
+<tr><td>C</td><td><strong>Supabase:</strong> ledger_threads.conversation + session_summaries; praise shortcuts only for brand + Akxerai praise at envelope level.</td></tr>
+<tr><td>D</td><td><strong>Parser expectations:</strong> parseLabeledQuoteBlock + parseAkxeraiExperienceFeedback on session.summary body; merge shortcuts from envelope.</td></tr>
+<tr><td>E</td><td><strong>Problems:</strong> local_fallback/fastExit/repair wipe signals; prompt discourages multi-block; Overview Akxerai praise tile incomplete vs tab sentiment; parser format fragility.</td></tr>
+<tr><td>F</td><td><strong>Recommended fixes (future):</strong> (1) Allow multi-slice quotes across blocks in Archivist rules. (2) Preserve dashboard blocks when only digest is repaired. (3) Ensure backfill always runs / async summary after fastExit. (4) Align Overview Akxerai praise with positive experience feedback or rename tile. (5) Optional envelope shortcuts for criticism. (6) Loosen parser for multiline labels.</td></tr>
+</table>
+
+<h2>15. Quick reference — function map</h2>
+<pre>finishLedgerScan              myraLedger.js
+buildSessionSummaryAndPraise  myraLedger.js
+summarizeSessionDialogue      myraSummarize.js
+requestSummary                myraSummarize.js (systemInstruction = MYRA_SESSION_SUMMARY_SYSTEM)
+repairSessionSummaryFromDialogue / buildLocalStorySummary   myraSummarize.js
+buildSessionSummaryEntry      myraLedger.js
+backfillThreadSummariesFromConversation   myraLedger.js
+parseSessionSummaryDetails    myraLedger.js
+buildDashboardAnalytics       myraLedger.js
+buildBrandDashboardAnalytics  brandDashboard.js
+fetchBrandLedgerThreads       brandDashboard.js
+OverviewView praise tiles     AdminDashboard.jsx</pre>
+
+<p style="margin-top:20px;font-size:8pt;color:#666;">End of document. Share this PDF with ChatGPT or any model to reason about fixes without re-reading the whole codebase.</p>
+</body>
+</html>
