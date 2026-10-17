@@ -553,6 +553,122 @@ function playQueuedBrowserTtsFromGesture() {
  * Call from Meet Myra / Begin pointerdown — starts play/speak in the same gesture.
  * This is the reliable iPhone path (autoplay after Gemini delay always fails).
  */
+/**
+ * iPhone Meet Myra: play() must run synchronously inside pointerdown — no await before play().
+ */
+function playBlobViaHtmlAudioFromUserGesture(blob, { onStart, onEnd, onError }, requeueJob) {
+  const objectUrl = URL.createObjectURL(blob)
+  currentObjectUrl = objectUrl
+  const audio = getTtsAudioElement()
+  pauseUnlockLoopForTts()
+  audio.muted = false
+  audio.volume = 1
+  audio.loop = false
+  audio.src = objectUrl
+  audio._objectUrl = objectUrl
+  currentAudio = audio
+  try {
+    audio.load()
+  } catch {
+    // ignore
+  }
+
+  const cleanup = () => {
+    if (currentObjectUrl === objectUrl) {
+      URL.revokeObjectURL(objectUrl)
+      currentObjectUrl = null
+    }
+    audio._objectUrl = null
+    if (currentAudio === audio) currentAudio = null
+    currentAbort = null
+    resumeUnlockLoopAfterTts()
+  }
+
+  audio.onended = () => {
+    disconnectTtsAudio()
+    cleanup()
+    onEnd?.()
+  }
+
+  audio.onerror = () => {
+    disconnectTtsAudio()
+    cleanup()
+    onError?.(new Error('TTS audio playback failed'))
+  }
+
+  if (!isAppleMobileBrowser()) {
+    connectTtsAudio(audio)
+  } else {
+    startSpeechLipSync()
+  }
+
+  let playCalled = false
+  try {
+    const playPromise = audio.play()
+    playCalled = true
+    void Promise.resolve(playPromise)
+      .then(() => {
+        notifyAudioNeedsTap(false)
+        setMyraVoiceOutputPath('cloud')
+        onStart?.()
+        void prepareApplePlaybackAfterMic()
+      })
+      .catch((error) => {
+        const name = error instanceof Error ? error.name : ''
+        console.warn('[Audio] Gesture play failed:', name || error)
+        cleanup()
+        if (isAppleMobileBrowser() && requeueJob?.blob) {
+          pendingHtmlPlay = requeueJob
+          deferredTtsJob = requeueJob
+          notifyAudioNeedsTap(true)
+          console.warn('[Audio] iOS blocked TTS — Meet Myra gate')
+          return
+        }
+        onError?.(error instanceof Error ? error : new Error(String(error)))
+      })
+  } catch (error) {
+    playCalled = false
+    cleanup()
+    console.warn('[Audio] Gesture play() threw:', error)
+  }
+
+  return playCalled
+}
+
+function beginCloudTtsFromUserGesture(job) {
+  if (!job?.blob?.size) return false
+
+  const requeueJob = {
+    blob: job.blob,
+    callbacks: job.callbacks,
+    resolvePlay: job.resolvePlay,
+  }
+
+  const handleStart = () => {
+    appleGestureUnlocked = true
+    mobileAudioPrimed = true
+    deferredTtsJob = null
+    pendingHtmlPlay = null
+    job.callbacks?.onStart?.()
+  }
+
+  return playBlobViaHtmlAudioFromUserGesture(
+    job.blob,
+    {
+      onStart: handleStart,
+      onEnd: () => {
+        job.callbacks?.onEnd?.()
+        job.resolvePlay?.()
+      },
+      onError: (err) => {
+        job.callbacks?.onError?.(err)
+        job.resolvePlay?.()
+      },
+    },
+    requeueJob,
+  )
+}
+
 export function playQueuedTtsFromUserGesture() {
   const ctx = getSharedAudioContext()
   void ctx?.resume?.()
@@ -568,30 +684,7 @@ export function playQueuedTtsFromUserGesture() {
     return false
   }
 
-  deferredTtsJob = null
-  pendingHtmlPlay = null
-  notifyAudioNeedsTap(false)
-  appleGestureUnlocked = true
-  mobileAudioPrimed = true
-
-  const { onStart, onEnd, onError } = job.callbacks || {}
-  void playBlob(job.blob, {
-    onStart: () => onStart?.(),
-    onEnd: () => {
-      onEnd?.()
-      job.resolvePlay?.()
-    },
-    onError: (err) => {
-      onError?.(err)
-      job.resolvePlay?.()
-    },
-  }).catch((error) => {
-    console.warn('[Audio] Gesture play failed:', error)
-    deferredTtsJob = job
-    notifyAudioNeedsTap(true)
-  })
-
-  return true
+  return beginCloudTtsFromUserGesture(job)
 }
 
 export function hasQueuedTtsForGesture() {

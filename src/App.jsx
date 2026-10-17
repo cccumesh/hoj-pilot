@@ -42,6 +42,7 @@ import {
   shouldKeepMyraTtsAudioTags,
   getActiveTtsProvider,
   playQueuedTtsFromUserGesture,
+  hasQueuedTtsForGesture,
   primeSafariSpeechSynthesis,
   prepareApplePlaybackAfterMic,
   pauseAppleUnlockLoop,
@@ -1728,7 +1729,12 @@ function App() {
 
 function mapGeminiCallType(reason) {
   const text = String(reason ?? '').toLowerCase()
-  if (text.includes('welcome') || text.includes('boot') || text.includes('resume')) {
+  if (
+    text.includes('welcome') ||
+    text.includes('boot') ||
+    text.includes('resume') ||
+    text.includes('opening-after-verify')
+  ) {
     return 'welcome'
   }
   return 'chat'
@@ -1927,9 +1933,10 @@ function mapGeminiCallType(reason) {
         return
       }
 
-      const onSpeakStart = persistMyra
-        ? () => queuePersistHistoryEntry('myra', fullResponse)
-        : undefined
+      // Ledger: save Gemini text even if iPhone TTS never reaches onStart.
+      if (persistMyra) {
+        queuePersistHistoryEntry('myra', fullResponse)
+      }
 
       if (myraResponseShouldEndSession(fullResponse) && !ignoreSessionClose) {
         speakMyraReply(
@@ -1938,12 +1945,11 @@ function mapGeminiCallType(reason) {
             await waitForMyraSpeechToFinish()
             endExperienceRef.current?.()
           },
-          { onSpeakStart },
         )
         return
       }
 
-      speakMyraReply(fullResponse, onSpeechDone, { onSpeakStart })
+      speakMyraReply(fullResponse, onSpeechDone)
     },
     [speakMyraReply],
   )
@@ -4046,6 +4052,7 @@ function mapGeminiCallType(reason) {
                   type="button"
                   className="akxerai-audio-tap"
                   aria-label="Meet Myra"
+                  aria-busy={!hasQueuedTtsForGesture()}
                   onPointerDown={(event) => {
                     event.preventDefault()
                     event.stopPropagation()
@@ -4053,15 +4060,19 @@ function mapGeminiCallType(reason) {
                     const played = playQueuedTtsFromUserGesture()
                     if (!played) {
                       unlockMobileSpeechAudio({ force: true, speechPing: true })
-                      return
                     }
-                    setNeedsAudioTap(false)
                   }}
                 >
                   <span className="akxerai-audio-tap__glow" aria-hidden />
                   <p className="akxerai-audio-tap__title">Meet Myra</p>
-                  <p className="akxerai-audio-tap__sub">Your card found her. Tap to begin.</p>
-                  <span className="akxerai-audio-tap__pill">Begin</span>
+                  <p className="akxerai-audio-tap__sub">
+                    {hasQueuedTtsForGesture()
+                      ? 'Your card found her. Tap to hear her voice.'
+                      : 'Getting her voice ready… tap again in a moment.'}
+                  </p>
+                  <span className="akxerai-audio-tap__pill">
+                    {hasQueuedTtsForGesture() ? 'Begin' : 'Please wait…'}
+                  </span>
                 </button>
               ) : null}
 
