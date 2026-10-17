@@ -6,6 +6,9 @@ import AdminDashboard from './AdminDashboard.jsx'
 import { isDashboardRoute } from './dashboardRoute.js'
 import { initAkxeraiMobileShell } from './mobileShell.js'
 import { unlockMobileSpeechAudio } from './elevenLabsTts.js'
+import { bootAkxeraiDebugConsole } from './akxeraiDebugConsole.js'
+
+bootAkxeraiDebugConsole()
 
 const isDashboard = isDashboardRoute()
 
