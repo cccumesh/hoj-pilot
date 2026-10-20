@@ -270,14 +270,48 @@ function startSilentKeepAlive(ctx) {
   }
 }
 
-function notifyAudioNeedsTap(needsTap) {
+function notifyAudioNeedsTap(needsTap, { gestureReady = null } = {}) {
   try {
     window.dispatchEvent(
-      new CustomEvent('akxerai-audio-needs-tap', { detail: { needsTap: Boolean(needsTap) } }),
+      new CustomEvent('akxerai-audio-needs-tap', {
+        detail: {
+          needsTap: Boolean(needsTap),
+          gestureReady: gestureReady == null ? undefined : Boolean(gestureReady),
+        },
+      }),
     )
   } catch {
     // ignore
   }
+}
+
+function notifyGestureQueueReady() {
+  try {
+    window.dispatchEvent(new CustomEvent('akxerai-audio-gesture-ready'))
+  } catch {
+    // ignore
+  }
+}
+
+function releaseGestureJobMedia(job) {
+  if (!job?.prewarmObjectUrl) return
+  if (currentObjectUrl === job.prewarmObjectUrl) {
+    URL.revokeObjectURL(job.prewarmObjectUrl)
+    currentObjectUrl = null
+  }
+  if (currentAudio?._objectUrl === job.prewarmObjectUrl) {
+    try {
+      currentAudio.pause()
+      currentAudio.removeAttribute('src')
+      currentAudio.load()
+    } catch {
+      // ignore
+    }
+    currentAudio._objectUrl = null
+    currentAudio = null
+  }
+  job.prewarmObjectUrl = null
+  job.gesturePlayReady = false
 }
 
 /**
@@ -488,11 +522,68 @@ function clearDeferredTtsJob(reason) {
   if (!deferredTtsJob) return
   const job = deferredTtsJob
   deferredTtsJob = null
+  releaseGestureJobMedia(job)
   notifyAudioNeedsTap(false)
   if (reason === 'cancel') {
     job.callbacks?.onEnd?.()
     job.resolvePlay?.()
   }
+}
+
+/** iPhone: decode MP3 before Meet Myra tap so play() stays inside the gesture. */
+function prewarmGestureTtsBlob(job) {
+  if (!job?.blob?.size) return
+
+  releaseGestureJobMedia(job)
+  job.gesturePlayReady = false
+
+  const objectUrl = URL.createObjectURL(job.blob)
+  job.prewarmObjectUrl = objectUrl
+  currentObjectUrl = objectUrl
+
+  const audio = getTtsAudioElement()
+  pauseUnlockLoopForTts()
+  audio.muted = true
+  audio.volume = 1
+  audio.loop = false
+  audio.preload = 'auto'
+  audio.src = objectUrl
+  audio._objectUrl = objectUrl
+  currentAudio = audio
+
+  const markReady = () => {
+    if (deferredTtsJob !== job && pendingHtmlPlay !== job) return
+    if (job.gesturePlayReady) return
+    job.gesturePlayReady = true
+    notifyAudioNeedsTap(true, { gestureReady: true })
+    notifyGestureQueueReady()
+    console.info('[Audio] Meet Myra voice ready — tap Begin')
+  }
+
+  const onDecode = () => {
+    audio.removeEventListener('canplaythrough', onDecode)
+    audio.removeEventListener('loadeddata', onDecode)
+    markReady()
+  }
+
+  audio.addEventListener('canplaythrough', onDecode, { once: true })
+  audio.addEventListener('loadeddata', onDecode, { once: true })
+  try {
+    audio.load()
+  } catch {
+    // ignore
+  }
+
+  if (audio.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
+    markReady()
+  }
+
+  window.setTimeout(() => {
+    if ((deferredTtsJob === job || pendingHtmlPlay === job) && !job.gesturePlayReady) {
+      console.warn('[Audio] Meet Myra prewarm slow — tap may still work')
+      markReady()
+    }
+  }, 9000)
 }
 
 function playQueuedBrowserTtsFromGesture() {
@@ -557,26 +648,51 @@ function playQueuedBrowserTtsFromGesture() {
  * iPhone Meet Myra: play() must run synchronously inside pointerdown — no await before play().
  */
 function playBlobViaHtmlAudioFromUserGesture(blob, { onStart, onEnd, onError }, requeueJob) {
-  const objectUrl = URL.createObjectURL(blob)
-  currentObjectUrl = objectUrl
-  const audio = getTtsAudioElement()
-  pauseUnlockLoopForTts()
-  audio.muted = false
-  audio.volume = 1
-  audio.loop = false
-  audio.src = objectUrl
-  audio._objectUrl = objectUrl
-  currentAudio = audio
-  try {
-    audio.load()
-  } catch {
-    // ignore
+  const prewarmUrl = requeueJob?.prewarmObjectUrl
+  const usePrewarm =
+    Boolean(prewarmUrl) &&
+    requeueJob?.gesturePlayReady &&
+    currentAudio &&
+    (currentAudio.src === prewarmUrl || currentAudio.currentSrc === prewarmUrl)
+
+  let objectUrl = prewarmUrl
+  let audio = getTtsAudioElement()
+
+  if (!usePrewarm) {
+    objectUrl = URL.createObjectURL(blob)
+    currentObjectUrl = objectUrl
+    pauseUnlockLoopForTts()
+    audio.muted = false
+    audio.volume = 1
+    audio.loop = false
+    audio.src = objectUrl
+    audio._objectUrl = objectUrl
+    currentAudio = audio
+    try {
+      audio.load()
+    } catch {
+      // ignore
+    }
+  } else {
+    audio = currentAudio
+    pauseUnlockLoopForTts()
+    audio.muted = false
+    audio.volume = 1
+    try {
+      audio.currentTime = 0
+    } catch {
+      // ignore
+    }
   }
 
   const cleanup = () => {
-    if (currentObjectUrl === objectUrl) {
+    if (objectUrl && currentObjectUrl === objectUrl) {
       URL.revokeObjectURL(objectUrl)
       currentObjectUrl = null
+    }
+    if (requeueJob) {
+      requeueJob.prewarmObjectUrl = null
+      requeueJob.gesturePlayReady = false
     }
     audio._objectUrl = null
     if (currentAudio === audio) currentAudio = null
@@ -598,8 +714,6 @@ function playBlobViaHtmlAudioFromUserGesture(blob, { onStart, onEnd, onError }, 
 
   if (!isAppleMobileBrowser()) {
     connectTtsAudio(audio)
-  } else {
-    startSpeechLipSync()
   }
 
   let playCalled = false
@@ -610,25 +724,26 @@ function playBlobViaHtmlAudioFromUserGesture(blob, { onStart, onEnd, onError }, 
       .then(() => {
         notifyAudioNeedsTap(false)
         setMyraVoiceOutputPath('cloud')
+        startSpeechLipSync()
         onStart?.()
         void prepareApplePlaybackAfterMic()
       })
       .catch((error) => {
         const name = error instanceof Error ? error.name : ''
         console.warn('[Audio] Gesture play failed:', name || error)
-        cleanup()
         if (isAppleMobileBrowser() && requeueJob?.blob) {
+          requeueJob.gesturePlayReady = Boolean(requeueJob.prewarmObjectUrl)
           pendingHtmlPlay = requeueJob
           deferredTtsJob = requeueJob
-          notifyAudioNeedsTap(true)
+          notifyAudioNeedsTap(true, { gestureReady: requeueJob.gesturePlayReady })
           console.warn('[Audio] iOS blocked TTS — Meet Myra gate')
           return
         }
+        cleanup()
         onError?.(error instanceof Error ? error : new Error(String(error)))
       })
   } catch (error) {
     playCalled = false
-    cleanup()
     console.warn('[Audio] Gesture play() threw:', error)
   }
 
@@ -637,11 +752,8 @@ function playBlobViaHtmlAudioFromUserGesture(blob, { onStart, onEnd, onError }, 
 
 function beginCloudTtsFromUserGesture(job) {
   if (!job?.blob?.size) return false
-
-  const requeueJob = {
-    blob: job.blob,
-    callbacks: job.callbacks,
-    resolvePlay: job.resolvePlay,
+  if (!job.gesturePlayReady && deferredTtsJob === job) {
+    return false
   }
 
   const handleStart = () => {
@@ -665,7 +777,7 @@ function beginCloudTtsFromUserGesture(job) {
         job.resolvePlay?.()
       },
     },
-    requeueJob,
+    job,
   )
 }
 
@@ -687,8 +799,17 @@ export function playQueuedTtsFromUserGesture() {
   return beginCloudTtsFromUserGesture(job)
 }
 
-export function hasQueuedTtsForGesture() {
+/** Meet Myra overlay visible (loading or ready). */
+export function hasGestureTtsPending() {
   return Boolean(deferredTtsJob?.blob || pendingHtmlPlay?.blob || deferredBrowserTts?.text)
+}
+
+/** True when user should tap Begin (voice decoded / browser text ready). */
+export function hasQueuedTtsForGesture() {
+  if (deferredBrowserTts?.text) return true
+  const job = deferredTtsJob || pendingHtmlPlay
+  if (!job?.blob) return false
+  return Boolean(job.gesturePlayReady)
 }
 
 let silentGestureArm = null
@@ -848,9 +969,12 @@ function queueTtsBlobForUserGesture(blob, callbacks) {
       blob,
       callbacks,
       resolvePlay: resolve,
+      gesturePlayReady: false,
+      prewarmObjectUrl: null,
     }
-    notifyAudioNeedsTap(true)
-    console.info('[Audio] Meet Myra gate (ElevenLabs)')
+    notifyAudioNeedsTap(true, { gestureReady: false })
+    console.info('[Audio] Meet Myra gate — loading voice')
+    prewarmGestureTtsBlob(deferredTtsJob)
   })
 }
 
@@ -897,7 +1021,10 @@ function stopBufferSource() {
 export function stopElevenLabsSpeech() {
   disconnectTtsAudio()
   stopSpeechLipSync()
-  pendingHtmlPlay = null
+  if (pendingHtmlPlay) {
+    releaseGestureJobMedia(pendingHtmlPlay)
+    pendingHtmlPlay = null
+  }
   clearSilentGestureArm()
   if (deferredBrowserTts) {
     const job = deferredBrowserTts
@@ -909,6 +1036,7 @@ export function stopElevenLabsSpeech() {
   if (deferredTtsJob) {
     const job = deferredTtsJob
     deferredTtsJob = null
+    releaseGestureJobMedia(job)
     notifyAudioNeedsTap(false)
     job.callbacks?.onEnd?.()
     job.resolvePlay?.()

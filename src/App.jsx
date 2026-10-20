@@ -43,6 +43,7 @@ import {
   getActiveTtsProvider,
   playQueuedTtsFromUserGesture,
   hasQueuedTtsForGesture,
+  isAppleSpeechGestureUnlocked,
   primeSafariSpeechSynthesis,
   prepareApplePlaybackAfterMic,
   pauseAppleUnlockLoop,
@@ -1210,6 +1211,7 @@ function App() {
   const liveMicEditingRef = useRef(false)
   const [voiceLevels, setVoiceLevels] = useState(() => Array(12).fill(0.15))
   const [needsAudioTap, setNeedsAudioTap] = useState(false)
+  const [, setGestureQueueTick] = useState(0)
   const [exitClosing, setExitClosing] = useState(false)
   const exitClosingRef = useRef(false)
   const reelCaptureRef = useRef(null)
@@ -1631,7 +1633,7 @@ function App() {
     setIsAiThinking(true)
     setIsListening(false)
     releaseMicForTts()
-    if (isAppleMobileBrowser()) {
+    if (isAppleMobileBrowser() && isAppleSpeechGestureUnlocked()) {
       await prepareApplePlaybackAfterMic()
     }
     void ensureMobileAudioUnlocked({ force: false })
@@ -3363,9 +3365,17 @@ function mapGeminiCallType(reason) {
       const needs = Boolean(event?.detail?.needsTap)
       setNeedsAudioTap(needs)
       if (needs) setJarvisUiReady(true)
+      if (event?.detail?.gestureReady != null) {
+        setGestureQueueTick((tick) => tick + 1)
+      }
     }
+    const onGestureReady = () => setGestureQueueTick((tick) => tick + 1)
     window.addEventListener('akxerai-audio-needs-tap', onAudioNeedsTap)
-    return () => window.removeEventListener('akxerai-audio-needs-tap', onAudioNeedsTap)
+    window.addEventListener('akxerai-audio-gesture-ready', onGestureReady)
+    return () => {
+      window.removeEventListener('akxerai-audio-needs-tap', onAudioNeedsTap)
+      window.removeEventListener('akxerai-audio-gesture-ready', onGestureReady)
+    }
   }, [])
 
   useEffect(() => {
