@@ -44,6 +44,7 @@ import {
   playQueuedTtsFromUserGesture,
   hasQueuedTtsForGesture,
   isAppleSpeechGestureUnlocked,
+  queueBrowserTtsForUserGesture,
   primeSafariSpeechSynthesis,
   prepareApplePlaybackAfterMic,
   pauseAppleUnlockLoop,
@@ -1673,9 +1674,28 @@ function App() {
       setUserTurnThinking(false)
     }
 
+    const browserSpeech = keepAudioTags
+      ? prepareMyraSpeechText(fullResponse, { keepAudioTags: false })
+      : speechText
+
+    // iPhone: first line MUST use sync speechSynthesis on Meet Myra tap — cloud MP3 fails on Safari.
+    if (isAppleMobileBrowser() && !isAppleSpeechGestureUnlocked()) {
+      console.info('[Audio] iPhone first voice — browser TTS on Meet Myra tap')
+      setJarvisUiReady(true)
+      await queueBrowserTtsForUserGesture(browserSpeech, {
+        onStart: startTalkingAnimation,
+        onEnd: finish,
+        voice: myraVoiceRef.current,
+        lang: myraVoiceRef.current?.lang || 'hi-IN',
+        rate: 1.06,
+        pitch: 1,
+        showTapHint: true,
+      })
+      return
+    }
+
     if (useCloudTts) {
       try {
-        // iPhone: first voice uses Meet Myra gate (gesture unlock).
         if (isAppleMobileBrowser()) {
           setJarvisUiReady(true)
         }
@@ -1690,12 +1710,6 @@ function App() {
       }
     }
 
-    // Cloud failed or browser-only — never read [laugh]/[sigh] aloud.
-    const browserSpeech = keepAudioTags
-      ? prepareMyraSpeechText(fullResponse, { keepAudioTags: false })
-      : speechText
-
-    // iPhone: first voice = Meet Myra gate; later lines speak directly.
     if (isAppleMobileBrowser()) {
       setJarvisUiReady(true)
       await speakBrowserTtsAuto(browserSpeech, {

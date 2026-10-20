@@ -630,6 +630,14 @@ function playQueuedBrowserTtsFromGesture() {
   }
   utterance.onerror = (event) => {
     console.warn('[Audio] iPhone browser TTS error:', event?.error || event)
+    if (job.voice) {
+      console.warn('[Audio] Voice failed — tap Begin again (default Safari voice queued)')
+      job.voice = null
+      deferredBrowserTts = job
+      notifyAudioNeedsTap(true, { gestureReady: true })
+      notifyGestureQueueReady()
+      return
+    }
     job.callbacks?.onEnd?.()
     job.resolvePlay?.()
   }
