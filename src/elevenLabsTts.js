@@ -590,7 +590,6 @@ function playQueuedBrowserTtsFromGesture() {
   const job = deferredBrowserTts
   if (!job?.text) return false
 
-  clearSilentGestureArm()
   deferredBrowserTts = null
   notifyAudioNeedsTap(false)
 
@@ -793,7 +792,15 @@ export function playQueuedTtsFromUserGesture() {
   const ctx = getSharedAudioContext()
   void ctx?.resume?.()
 
-  // Browser TTS queue (default when ElevenLabs is off).
+  // iPhone: Meet Myra only starts Safari speech — never cloud MP3 from this button.
+  if (isAppleMobileBrowser()) {
+    if (deferredBrowserTts?.text) {
+      return playQueuedBrowserTtsFromGesture()
+    }
+    void ensureMobileAudioUnlocked({ force: true })
+    return false
+  }
+
   if (deferredBrowserTts?.text) {
     return playQueuedBrowserTtsFromGesture()
   }
@@ -820,48 +827,6 @@ export function hasQueuedTtsForGesture() {
   return Boolean(job.gesturePlayReady)
 }
 
-let silentGestureArm = null
-
-function clearSilentGestureArm() {
-  if (!silentGestureArm) return
-  const arm = silentGestureArm
-  silentGestureArm = null
-  if (arm.hintTimer) {
-    clearTimeout(arm.hintTimer)
-    arm.hintTimer = null
-  }
-  if (arm.listener) {
-    arm.events.forEach((type) => {
-      window.removeEventListener(type, arm.listener, true)
-    })
-  }
-}
-
-/**
- * Queue Safari TTS for the next real touch — show branded Meet Myra gate immediately.
- */
-function armSilentGestureBrowserTts(job) {
-  clearSilentGestureArm()
-
-  deferredBrowserTts = job
-  notifyAudioNeedsTap(true)
-
-  const events = ['pointerdown', 'touchstart', 'click']
-  const onGesture = (event) => {
-    // Let the Meet Myra button handle its own pointerdown; still unlock on any other touch.
-    if (event?.target?.closest?.('.akxerai-audio-tap')) return
-    if (!deferredBrowserTts || deferredBrowserTts !== job) return
-    clearSilentGestureArm()
-    playQueuedBrowserTtsFromGesture()
-  }
-
-  silentGestureArm = { listener: onGesture, events, hintTimer: null }
-  events.forEach((type) => {
-    window.addEventListener(type, onGesture, { capture: true, passive: true })
-  })
-  console.info('[Audio] Meet Myra gate — waiting for begin tap')
-}
-
 /** Queue Safari speechSynthesis until Meet Myra begin tap. */
 export function queueBrowserTtsForUserGesture(
   text,
@@ -878,7 +843,6 @@ export function queueBrowserTtsForUserGesture(
       deferredBrowserTts.callbacks?.onEnd?.()
       deferredBrowserTts.resolvePlay?.()
     }
-    clearSilentGestureArm()
     const job = {
       text: trimmed,
       voice,
@@ -888,13 +852,9 @@ export function queueBrowserTtsForUserGesture(
       callbacks: { onStart, onEnd, onError },
       resolvePlay: resolve,
     }
-    if (showTapHint) {
-      deferredBrowserTts = job
-      notifyAudioNeedsTap(true)
-      console.info('[Audio] Meet Myra gate (browser TTS)')
-      return
-    }
-    armSilentGestureBrowserTts(job)
+    deferredBrowserTts = job
+    notifyAudioNeedsTap(true, { gestureReady: true })
+    console.info('[Audio] Meet Myra gate (browser TTS)')
   })
 }
 
@@ -951,27 +911,32 @@ export function speakBrowserTtsAuto(
       synth.speak(utterance)
     }
 
-    // Already unlocked this session — delayed speak usually works.
     if (appleGestureUnlocked || !isAppleMobileBrowser()) {
       speakDirect()
       return
     }
 
-    // First iPhone voice = intentional Meet Myra moment (not a tech error label).
-    armSilentGestureBrowserTts({
-      text: trimmed,
+    void queueBrowserTtsForUserGesture(trimmed, {
+      onStart,
+      onEnd,
+      onError,
       voice,
       lang,
       rate,
       pitch,
-      callbacks: { onStart, onEnd, onError },
-      resolvePlay: resolve,
-    })
+      showTapHint: true,
+    }).then(() => resolve())
   })
 }
 
 function queueTtsBlobForUserGesture(blob, callbacks) {
   return new Promise((resolve) => {
+    if (isAppleMobileBrowser()) {
+      console.warn('[Audio] iPhone skips cloud MP3 queue — use Safari speech')
+      callbacks?.onEnd?.()
+      resolve()
+      return
+    }
     clearDeferredTtsJob('cancel')
     deferredTtsJob = {
       blob,
@@ -1026,6 +991,41 @@ function stopBufferSource() {
   currentBufferSource = null
 }
 
+/** iPhone: stop cloud/in-flight MP3 but keep Meet Myra browser queue until user taps Begin. */
+export function stopCloudPlaybackOnly() {
+  disconnectTtsAudio()
+  stopSpeechLipSync()
+  if (pendingHtmlPlay) {
+    releaseGestureJobMedia(pendingHtmlPlay)
+    pendingHtmlPlay = null
+  }
+  if (deferredTtsJob) {
+    const job = deferredTtsJob
+    deferredTtsJob = null
+    releaseGestureJobMedia(job)
+    job.callbacks?.onEnd?.()
+    job.resolvePlay?.()
+  }
+  if (currentAbort) {
+    currentAbort.abort()
+    currentAbort = null
+  }
+  stopBufferSource()
+  if (currentObjectUrl) {
+    URL.revokeObjectURL(currentObjectUrl)
+    currentObjectUrl = null
+  }
+  if (currentAudio) {
+    currentAudio.pause()
+    currentAudio.currentTime = 0
+    if (currentAudio._objectUrl) {
+      URL.revokeObjectURL(currentAudio._objectUrl)
+      currentAudio._objectUrl = null
+    }
+    currentAudio = null
+  }
+}
+
 export function stopElevenLabsSpeech() {
   disconnectTtsAudio()
   stopSpeechLipSync()
@@ -1033,7 +1033,6 @@ export function stopElevenLabsSpeech() {
     releaseGestureJobMedia(pendingHtmlPlay)
     pendingHtmlPlay = null
   }
-  clearSilentGestureArm()
   if (deferredBrowserTts) {
     const job = deferredBrowserTts
     deferredBrowserTts = null
@@ -1691,6 +1690,10 @@ export async function speakWithElevenLabs(
   text,
   { onStart, onEnd, onError, requireUserGesture = false } = {},
 ) {
+  if (isAppleMobileBrowser()) {
+    throw new Error('Cloud TTS is not used on iPhone — Safari speech only')
+  }
+
   if (!isElevenLabsConfigured()) {
     throw new Error('ElevenLabs is not configured')
   }

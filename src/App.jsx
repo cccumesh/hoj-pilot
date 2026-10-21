@@ -42,6 +42,7 @@ import {
   shouldKeepMyraTtsAudioTags,
   getActiveTtsProvider,
   playQueuedTtsFromUserGesture,
+  hasGestureTtsPending,
   hasQueuedTtsForGesture,
   isAppleSpeechGestureUnlocked,
   queueBrowserTtsForUserGesture,
@@ -53,6 +54,7 @@ import {
   speakWithElevenLabs,
   unlockMobileSpeechAudio,
   stopElevenLabsSpeech,
+  stopCloudPlaybackOnly,
   waitForMyraSpeechToFinish,
 } from './elevenLabsTts.js'
 import {
@@ -1678,19 +1680,23 @@ function App() {
       ? prepareMyraSpeechText(fullResponse, { keepAudioTags: false })
       : speechText
 
-    // iPhone: first line MUST use sync speechSynthesis on Meet Myra tap — cloud MP3 fails on Safari.
-    if (isAppleMobileBrowser() && !isAppleSpeechGestureUnlocked()) {
-      console.info('[Audio] iPhone first voice — browser TTS on Meet Myra tap')
+    // iPhone only: Inworld/cloud MP3 is unreliable on WebKit — always Safari speechSynthesis.
+    if (isAppleMobileBrowser()) {
       setJarvisUiReady(true)
-      await queueBrowserTtsForUserGesture(browserSpeech, {
+      const browserOpts = {
         onStart: startTalkingAnimation,
         onEnd: finish,
         voice: myraVoiceRef.current,
         lang: myraVoiceRef.current?.lang || 'hi-IN',
         rate: 1.06,
         pitch: 1,
-        showTapHint: true,
-      })
+      }
+      if (!isAppleSpeechGestureUnlocked()) {
+        console.info('[Audio] iPhone — Meet Myra tap (Safari speech)')
+        await queueBrowserTtsForUserGesture(browserSpeech, { ...browserOpts, showTapHint: true })
+      } else {
+        await speakBrowserTtsAuto(browserSpeech, browserOpts)
+      }
       return
     }
 
@@ -1708,19 +1714,6 @@ function App() {
         console.error('[ElevenLabs] TTS failed, using browser voice:', error)
         setIsAiThinking(false)
       }
-    }
-
-    if (isAppleMobileBrowser()) {
-      setJarvisUiReady(true)
-      await speakBrowserTtsAuto(browserSpeech, {
-        onStart: startTalkingAnimation,
-        onEnd: finish,
-        voice: myraVoiceRef.current,
-        lang: myraVoiceRef.current?.lang || 'hi-IN',
-        rate: 1.06,
-        pitch: 1,
-      })
-      return
     }
 
     speakWithBrowserTts(browserSpeech, finish, startTalkingAnimation)
@@ -1980,8 +1973,16 @@ function mapGeminiCallType(reason) {
       if (!trimmed) return
       if (cycleId != null && jarvisMicCycleRef.current !== cycleId) return
 
-      window.speechSynthesis.cancel()
-      stopElevenLabsSpeech()
+      const iphoneMeetMyraPending =
+        isAppleMobileBrowser() &&
+        !isAppleSpeechGestureUnlocked() &&
+        hasGestureTtsPending()
+      if (!iphoneMeetMyraPending) {
+        window.speechSynthesis.cancel()
+        stopElevenLabsSpeech()
+      } else {
+        stopCloudPlaybackOnly()
+      }
       jarvisMicCycleRef.current += 1
       clearJarvisSpeechTimer()
 
@@ -4080,6 +4081,9 @@ function mapGeminiCallType(reason) {
                   onPointerDown={(event) => {
                     event.preventDefault()
                     event.stopPropagation()
+                    if (isAppleMobileBrowser()) {
+                      primeSafariSpeechSynthesis()
+                    }
                     // speak()/play() must start in this gesture — do not await anything first.
                     const played = playQueuedTtsFromUserGesture()
                     if (!played) {
