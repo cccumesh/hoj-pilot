@@ -17,7 +17,7 @@ const VR_MYRA_PLACEMENT = {
   position: { ...IDLE_PLACEMENT.position, y: -0.80 },
 }
 
-/** VR mode — Myra on House of Jewels loading art, no camera / MindAR. */
+/** VR mode — Myra on House of Jewels loading art, no camera / MindAR / target video. */
 export function MyraStaticSession({
   backgroundSrc,
   showMyra,

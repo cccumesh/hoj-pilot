@@ -3933,7 +3933,7 @@ function mapGeminiCallType(reason) {
                   showThinkingRing={
                     userTurnThinking && isAiThinking && !isMyraTalking
                   }
-                  playTargetVideo={!targetVideoDone}
+                  playTargetVideo={false}
                   onTargetVideoEnded={handleTargetVideoEnded}
                 />
               )}
