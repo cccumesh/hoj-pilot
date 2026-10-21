@@ -15,8 +15,9 @@ if (!isDashboard) {
   const unlockOnce = () => {
     unlockMobileSpeechAudio({ force: true, speechPing: true })
   }
-  document.addEventListener('pointerdown', unlockOnce, { capture: true, passive: true })
-  document.addEventListener('touchstart', unlockOnce, { capture: true, passive: true })
+  // Once only — repeating speechPing on every capture touch breaks Meet Myra speak() on iOS.
+  document.addEventListener('pointerdown', unlockOnce, { capture: true, passive: true, once: true })
+  document.addEventListener('touchstart', unlockOnce, { capture: true, passive: true, once: true })
 }
 
 createRoot(document.getElementById('root')).render(

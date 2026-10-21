@@ -177,6 +177,9 @@ let pendingHtmlPlay = null
 let deferredTtsJob = null
 /** iPhone browser speechSynthesis — also needs the same tap gesture. */
 let deferredBrowserTts = null
+/** Restore Meet Myra queue if iOS drops the job without onstart/onerror. */
+let iphoneBrowserSpeechBackup = null
+let iphoneBrowserSpeakWatchdog = null
 /** After one successful gesture play, later lines may autoplay. */
 let appleGestureUnlocked = false
 /** Reel capture picks mic when Myra uses browser speechSynthesis. */
@@ -586,8 +589,29 @@ function prewarmGestureTtsBlob(job) {
   }, 9000)
 }
 
+function clearIphoneBrowserSpeakWatchdog() {
+  if (iphoneBrowserSpeakWatchdog) {
+    window.clearTimeout(iphoneBrowserSpeakWatchdog)
+    iphoneBrowserSpeakWatchdog = null
+  }
+}
+
+function requeueIphoneBrowserJob(job, { lang = job.lang, voice = job.voice } = {}) {
+  if (!job?.text) return
+  job.lang = lang
+  job.voice = voice
+  deferredBrowserTts = job
+  iphoneBrowserSpeechBackup = job
+  notifyAudioNeedsTap(true, { gestureReady: true })
+  notifyGestureQueueReady()
+}
+
 function playQueuedBrowserTtsFromGesture() {
-  const job = deferredBrowserTts
+  let job = deferredBrowserTts
+  if (!job?.text && iphoneBrowserSpeechBackup?.text) {
+    deferredBrowserTts = iphoneBrowserSpeechBackup
+    job = deferredBrowserTts
+  }
   if (!job?.text) return false
 
   const synth = window.speechSynthesis
@@ -597,25 +621,35 @@ function playQueuedBrowserTtsFromGesture() {
     return false
   }
 
+  clearIphoneBrowserSpeakWatchdog()
+
   try {
-    // Do not cancel() here — iOS can drop the next speak() after cancel in the same tick.
     synth.resume?.()
   } catch {
     // ignore
   }
+  // iOS often returns [] until voices are read inside the user gesture.
+  try {
+    synth.getVoices()
+  } catch {
+    // ignore
+  }
 
+  let started = false
   const utterance = new SpeechSynthesisUtterance(job.text)
-  // Prefer default Safari voice when none stored — some en-IN voices fail silently.
   if (job.voice) {
     utterance.voice = job.voice
-    utterance.lang = job.voice.lang || 'hi-IN'
+    utterance.lang = job.voice.lang || job.lang || 'hi-IN'
   } else {
     utterance.lang = job.lang || 'hi-IN'
   }
-  utterance.rate = job.rate ?? 1.06
+  utterance.rate = job.rate ?? 1
   utterance.pitch = job.pitch ?? 1
   utterance.onstart = () => {
+    started = true
+    clearIphoneBrowserSpeakWatchdog()
     deferredBrowserTts = null
+    iphoneBrowserSpeechBackup = null
     notifyAudioNeedsTap(false)
     appleGestureUnlocked = true
     mobileAudioPrimed = true
@@ -623,29 +657,49 @@ function playQueuedBrowserTtsFromGesture() {
     job.callbacks?.onStart?.()
   }
   utterance.onend = () => {
+    clearIphoneBrowserSpeakWatchdog()
     deferredBrowserTts = null
+    iphoneBrowserSpeechBackup = null
     job.callbacks?.onEnd?.()
     job.resolvePlay?.()
   }
   utterance.onerror = (event) => {
+    clearIphoneBrowserSpeakWatchdog()
     console.warn('[Audio] iPhone browser TTS error:', event?.error || event)
     if (job.voice) {
-      console.warn('[Audio] Voice failed — tap Begin again (default Safari voice queued)')
       job.voice = null
-      deferredBrowserTts = job
-      notifyAudioNeedsTap(true, { gestureReady: true })
-      notifyGestureQueueReady()
+      requeueIphoneBrowserJob(job, { lang: job.lang || 'hi-IN', voice: null })
+      return
+    }
+    if (job.lang !== 'en-US') {
+      requeueIphoneBrowserJob(job, { lang: 'en-US', voice: null })
       return
     }
     deferredBrowserTts = null
-    notifyAudioNeedsTap(false)
-    job.callbacks?.onEnd?.()
-    job.resolvePlay?.()
+    iphoneBrowserSpeechBackup = job
+    notifyAudioNeedsTap(true, { gestureReady: true })
+    notifyGestureQueueReady()
   }
 
-  // Must call speak() inside the user gesture — Safari drops delayed speak().
   synth.speak(utterance)
-  console.info('[Audio] iPhone browser TTS started from tap')
+  console.info('[Audio] iPhone browser TTS speak() from tap')
+
+  iphoneBrowserSpeakWatchdog = window.setTimeout(() => {
+    iphoneBrowserSpeakWatchdog = null
+    if (started) return
+    console.warn('[Audio] iPhone TTS silent after tap — re-queue for retry')
+    try {
+      synth.cancel()
+    } catch {
+      // ignore
+    }
+    if (job.lang !== 'en-US') {
+      requeueIphoneBrowserJob(job, { lang: 'en-US', voice: null })
+    } else {
+      requeueIphoneBrowserJob(job, { lang: 'en-US', voice: null })
+    }
+  }, 2600)
+
   return true
 }
 
@@ -855,6 +909,7 @@ export function queueBrowserTtsForUserGesture(
       resolvePlay: resolve,
     }
     deferredBrowserTts = job
+    iphoneBrowserSpeechBackup = job
     notifyAudioNeedsTap(true, { gestureReady: true })
     console.info('[Audio] Meet Myra gate (browser TTS)')
   })

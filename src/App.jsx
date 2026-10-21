@@ -2904,8 +2904,12 @@ function mapGeminiCallType(reason) {
   }, [])
 
   const speakMyraWelcome = useCallback(async () => {
-    window.speechSynthesis.cancel()
-    stopElevenLabsSpeech()
+    if (isAppleMobileBrowser()) {
+      stopCloudPlaybackOnly()
+    } else {
+      window.speechSynthesis.cancel()
+      stopElevenLabsSpeech()
+    }
     unlockMobileSpeechAudio({ force: true })
     setIsAiThinking(true)
 
@@ -4099,10 +4103,8 @@ function mapGeminiCallType(reason) {
                   className="akxerai-audio-tap"
                   aria-label="Meet Myra"
                   aria-busy={!hasQueuedTtsForGesture()}
-                  onPointerDown={(event) => {
-                    event.preventDefault()
-                    event.stopPropagation()
-                    // speak() must start in this gesture — no empty prime, no await.
+                  onClick={() => {
+                    // iOS: use click (not pointerdown+preventDefault) so speechSynthesis stays in user gesture.
                     playQueuedTtsFromUserGesture()
                   }}
                 >
