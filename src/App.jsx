@@ -456,6 +456,18 @@ async function applyTrackTorch(track, enabled) {
 
 function pickMyraVoice() {
   const voices = window.speechSynthesis?.getVoices() ?? []
+  if (isAppleMobileBrowser()) {
+    const applePreferred = ['Lekha', 'Kajal', 'Rishi']
+    for (const name of applePreferred) {
+      const match = voices.find((voice) => voice.name.includes(name))
+      if (match) return match
+    }
+    return (
+      voices.find((voice) => voice.lang.startsWith('hi')) ||
+      voices.find((voice) => voice.lang.startsWith('en-IN')) ||
+      null
+    )
+  }
   const preferred = [
     'Microsoft Swara Online (Natural)',
     'Microsoft Swara Online',
@@ -1628,8 +1640,15 @@ function App() {
       console.info('[Myra TTS] Inworld tags →', speechText.match(/\[[^\]]+\]/g)?.join(' '))
     }
 
-    window.speechSynthesis.cancel()
-    stopElevenLabsSpeech()
+    if (isAppleMobileBrowser()) {
+      stopCloudPlaybackOnly()
+      if (isAppleSpeechGestureUnlocked()) {
+        window.speechSynthesis.cancel()
+      }
+    } else {
+      window.speechSynthesis.cancel()
+      stopElevenLabsSpeech()
+    }
     // Kill mic + keep live-mic UI hidden while audio loads.
     // Do NOT set isMyraTalking yet — talking anim must wait for real speaker audio (onStart).
     aiSpeakingRef.current = true
@@ -1683,15 +1702,17 @@ function App() {
     // iPhone only: Inworld/cloud MP3 is unreliable on WebKit — always Safari speechSynthesis.
     if (isAppleMobileBrowser()) {
       setJarvisUiReady(true)
+      const unlocked = isAppleSpeechGestureUnlocked()
       const browserOpts = {
         onStart: startTalkingAnimation,
         onEnd: finish,
-        voice: myraVoiceRef.current,
-        lang: myraVoiceRef.current?.lang || 'hi-IN',
+        // First tap: lang only — forced voice objects often fail silently on iOS.
+        voice: unlocked ? pickMyraVoice() : null,
+        lang: 'hi-IN',
         rate: 1.06,
         pitch: 1,
       }
-      if (!isAppleSpeechGestureUnlocked()) {
+      if (!unlocked) {
         console.info('[Audio] iPhone — Meet Myra tap (Safari speech)')
         await queueBrowserTtsForUserGesture(browserSpeech, { ...browserOpts, showTapHint: true })
       } else {
@@ -4081,14 +4102,8 @@ function mapGeminiCallType(reason) {
                   onPointerDown={(event) => {
                     event.preventDefault()
                     event.stopPropagation()
-                    if (isAppleMobileBrowser()) {
-                      primeSafariSpeechSynthesis()
-                    }
-                    // speak()/play() must start in this gesture — do not await anything first.
-                    const played = playQueuedTtsFromUserGesture()
-                    if (!played) {
-                      unlockMobileSpeechAudio({ force: true, speechPing: true })
-                    }
+                    // speak() must start in this gesture — no empty prime, no await.
+                    playQueuedTtsFromUserGesture()
                   }}
                 >
                   <span className="akxerai-audio-tap__glow" aria-hidden />

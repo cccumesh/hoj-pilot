@@ -590,9 +590,6 @@ function playQueuedBrowserTtsFromGesture() {
   const job = deferredBrowserTts
   if (!job?.text) return false
 
-  deferredBrowserTts = null
-  notifyAudioNeedsTap(false)
-
   const synth = window.speechSynthesis
   if (!synth) {
     job.callbacks?.onEnd?.()
@@ -618,12 +615,15 @@ function playQueuedBrowserTtsFromGesture() {
   utterance.rate = job.rate ?? 1.06
   utterance.pitch = job.pitch ?? 1
   utterance.onstart = () => {
+    deferredBrowserTts = null
+    notifyAudioNeedsTap(false)
     appleGestureUnlocked = true
     mobileAudioPrimed = true
     startSpeechLipSync()
     job.callbacks?.onStart?.()
   }
   utterance.onend = () => {
+    deferredBrowserTts = null
     job.callbacks?.onEnd?.()
     job.resolvePlay?.()
   }
@@ -637,6 +637,8 @@ function playQueuedBrowserTtsFromGesture() {
       notifyGestureQueueReady()
       return
     }
+    deferredBrowserTts = null
+    notifyAudioNeedsTap(false)
     job.callbacks?.onEnd?.()
     job.resolvePlay?.()
   }
@@ -957,11 +959,7 @@ export function unlockMobileSpeechAudio({ force = false, speechPing = false } = 
   const ctx = getSharedAudioContext()
   void ctx?.resume?.()
 
-  // Prefer sync gesture play for queued TTS (do not await unlock first).
-  if (hasQueuedTtsForGesture()) {
-    playQueuedTtsFromUserGesture()
-    return
-  }
+  // Queued Myra speech plays only from the Meet Myra pointerdown — not random screen touches.
 
   // Must stay sync inside the gesture — async .then() loses Safari permission.
   if (speechPing) {
