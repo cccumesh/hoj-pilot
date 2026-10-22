@@ -57,8 +57,8 @@ MYRA LAST STATE (receiver thread — add after was_asking):
 was_teasing: <short topic from Myra's last closing tease line — or none>
 
 DASHBOARD SIGNALS — MISSION INSIGHTS (concept labels, not keyword lists)
-Purpose: After each scan, House of Jewels + Akxerai leadership read ONLY these labeled blocks to plan next missions (showroom, product, Myra persona, tech). The app does NOT search chat for words — you must classify by MEANING from the full session.
-Method: For each block, answer the "Ask:" question from scene intent + Hinglish context. Never tag from one isolated word. When unsure: none. One user quote → at most one primary block (split mixed lines to the strongest fit only).
+Purpose: After each scan, House of Jewels + Akxerai leadership read labeled blocks to plan next missions (showroom, product, Myra persona, tech). The app does NOT search chat for fixed keywords — you classify by MEANING from the full session like a fluent Hinglish listener.
+Method: For each legacy block below, answer the "Ask:" question from scene intent. When unsure: none. One short legacy block = at most one quote — but SESSION INSIGHTS (below) holds ALL bullets; never cram multi-topic praise into one legacy line.
 
 DISCOVERY — concept:
 What channel or path brought this sender to House of Jewels or this keepsake product?
@@ -124,14 +124,36 @@ Example (one utterance → three bullets):
 User: "Jewellery bahut sundar hai, Myra bhi mast thi, bas voice thodi slow thi."
 → brand_praise: jewellery slice; akxerai_praise: Myra mast slice; akxerai_issues: speed/voice slice.
 
+GOLD STANDARD (sender scan — jewellery + Myra delight + staff compare + tech annoyance; match this shape when the log supports it):
+SESSION INSIGHTS:
+brand_praise:
+- "Meri wife ke liye ring li hai"
+- "5 gram gold ki ring final ki"
+- "Unhone kafi saari rings dikhayi mujhe"
+brand_issues:
+- "Staff thoda gavthi… hindi gavar jaisi… Tanishq ka staff achha"
+akxerai_praise:
+- "Concept mast hai unexpected"
+- "Tu bhi bohot pyari hai"
+- "Jo bolunga vo Sejal ko bataogi — gajab chij"
+akxerai_issues:
+- scan_flow | "Bye bolne par cut hota hai kya apne aap"
+
+Rules for gold-standard quality:
+• Every distinct sincere user compliment or complaint in the log → its own bullet in the right section (do NOT write "- none" if the log clearly has that signal).
+• Split one long user turn into multiple bullets when topics differ (shop vs Myra vs tech).
+• Positive AKXERAI EXPERIENCE FEEDBACK quotes also belong in akxerai_praise; negative experience feedback also in akxerai_issues with a category.
+• Never copy the same bullet list across scans — each scan only quotes lines from THIS scan log.
+
 CLASSIFICATION DISCIPLINE (legacy DASHBOARD SIGNAL lines above — keep in sync when possible; SESSION INSIGHTS wins if they differ):
 • Read full turn and scene intent — never classify from isolated words.
 • Prefer none over weak labels. Multi-intent → use SESSION INSIGHTS bullets, not one forced primary block.
 
 MYRA BRAND LINES — concept (brand dashboard Brand Prompt tab reads ONLY this block):
-Myra lines from this scan where she spoke as House of Jewels member — shop, Bafna trust, keepsake, Yaadon ki Tijori, showroom soul, brand warmth. Read scene intent; not every myra line qualifies.
+Myra lines from THIS SCAN CHAT LOG (full myra: speeches in the input log — NOT the short myra topic labels inside DIALOGUE DIGEST) where she promoted House of Jewels — craftsmanship, legacy, Bafna/trust, showroom, ring/jewellery quality, Yaadon ki Tijori, keepsake magic, brand warmth.
+If she praised the shop, collection, or gift experience in character: include each moment as its own bullet. Private love-story gossip without brand voice does NOT count.
 If none: MYRA BRAND LINES: none
-If yes — one bullet per moment, exact or lightly trimmed Myra words from log:
+If yes — one bullet per moment, exact or lightly trimmed Myra words from the chat log:
 MYRA BRAND LINES:
 - "..."
 - "..."
@@ -1597,9 +1619,18 @@ export function repairSessionSummaryFromDialogue({
   return enrichSessionSummary(sanitized, priorSummariesText)
 }
 
+function stripArchivistTrailingPollution(text) {
+  return String(text ?? '')
+    .replace(
+      /(\nMYRA BRAND LINES:[\s\S]*?)(\n(?:brand_praise|axerai_praise|akxerai_praise|praise|session_insights):[\s\S]*)$/i,
+      '$1',
+    )
+    .trim()
+}
+
 /** Light cleanup before saving — strip legacy blocks; save Archivist output as-is. */
 export function enrichSessionSummary(summaryText, priorSummariesText = '') {
-  let text = String(summaryText ?? '').trim()
+  let text = stripArchivistTrailingPollution(String(summaryText ?? '').trim())
   if (!text) return text
 
   const quoteContext = [priorSummariesText, text].filter(Boolean).join('\n')
@@ -2044,8 +2075,9 @@ Do NOT output SENDER QUOTES block — sender lines live only inside DIALOGUE DIG
 Do NOT output RECIPIENT HANDOFF or story_queue — live Myra reads digest directly.
 Do NOT number lines — use myra: / sender: only (never 1. 2. 3.).
 DIALOGUE DIGEST asymmetry: myra = short topic label per turn (you write); sender = full quoted line with light spelling/grammar fix — every sender line, nothing omitted.
-DASHBOARD blocks: semantic intent only — none when unsure; one quote per block; no keyword-style labeling.
+Legacy DASHBOARD blocks: at most one quote each when unsure use none. SESSION INSIGHTS: as many bullets as the log supports (see gold standard in system prompt). No keyword-style labeling — read meaning.
 ${userCount > 0 ? `${userCount} user line(s) — ALL in DIALOGUE DIGEST as sender: "..." (full, cleaned).` : 'No user lines — SESSION END reason: empty_scan.'}
+${myraCount > 0 ? `MYRA BRAND LINES: pull from full myra speeches in CHAT LOG above (${myraCount} turns), not from digest topic labels.` : ''}
 ${myraCount > 0 ? `${myraCount} myra line(s) — short topic label each (e.g. naam pucha), never full speeches.` : 'No myra lines.'}`
 
   const summaryResult = await requestSummary(userPrompt)
@@ -2101,6 +2133,103 @@ export function sessionInsightsHasSignal(insights) {
       box.akxeraiIssues.length >
     0
   )
+}
+
+function insightQuoteKey(text) {
+  return String(text ?? '')
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+}
+
+function mergeInsightQuoteLists(...lists) {
+  const seen = new Set()
+  const out = []
+  for (const list of lists) {
+    for (const raw of list ?? []) {
+      const quote = normalizeQuoteSlice(raw)
+      const key = insightQuoteKey(quote)
+      if (!key || seen.has(key)) continue
+      seen.add(key)
+      out.push(quote)
+    }
+  }
+  return out
+}
+
+function mergeAkxeraiIssueRows(...lists) {
+  const seen = new Set()
+  const out = []
+  for (const list of lists) {
+    for (const row of list ?? []) {
+      const quote = normalizeQuoteSlice(row?.quote)
+      const key = `${String(row?.category ?? 'other').toLowerCase()}|${insightQuoteKey(quote)}`
+      if (!quote || seen.has(key)) continue
+      seen.add(key)
+      out.push({
+        category: String(row?.category ?? 'other').slice(0, 24) || 'other',
+        quote,
+      })
+    }
+  }
+  return out
+}
+
+/** Union bullets from Archivist text block + footer JSON (prefer all unique quotes). */
+export function mergeSessionInsights(...candidates) {
+  const merged = emptySessionInsights()
+  for (const box of candidates) {
+    if (!box) continue
+    merged.brandPraise = mergeInsightQuoteLists(merged.brandPraise, box.brandPraise)
+    merged.brandIssues = mergeInsightQuoteLists(merged.brandIssues, box.brandIssues)
+    merged.akxeraiPraise = mergeInsightQuoteLists(merged.akxeraiPraise, box.akxeraiPraise)
+    merged.akxeraiIssues = mergeAkxeraiIssueRows(merged.akxeraiIssues, box.akxeraiIssues)
+  }
+  return merged
+}
+
+export function serializeSessionInsightsForFooter(insights) {
+  const box = insights ?? emptySessionInsights()
+  return JSON.stringify({
+    brandPraise: box.brandPraise,
+    brandIssues: box.brandIssues,
+    akxeraiPraise: box.akxeraiPraise,
+    akxeraiIssues: box.akxeraiIssues,
+  })
+}
+
+/** Fill gaps from Archivist legacy labeled blocks (already semantic — not chat keyword scan). */
+export function augmentInsightsFromArchivistLabels(summaryText, insights = emptySessionInsights()) {
+  const box = mergeSessionInsights(insights)
+  const text = String(summaryText ?? '')
+
+  const brand = parseBrandProductPraise(text)
+  if (brand.detected && brand.quote) {
+    box.brandPraise = mergeInsightQuoteLists(box.brandPraise, [brand.quote])
+  }
+
+  const criticism = parseBrandProductCriticism(text)
+  if (criticism.detected && criticism.quote) {
+    box.brandIssues = mergeInsightQuoteLists(box.brandIssues, [criticism.quote])
+  }
+
+  const akxerai = parseAkxeraiPraiseFromSummary(text)
+  if (akxerai.detected && akxerai.quote) {
+    box.akxeraiPraise = mergeInsightQuoteLists(box.akxeraiPraise, [akxerai.quote])
+  }
+
+  const experience = parseAkxeraiExperienceFeedback(text)
+  if (experience.detected && experience.quote) {
+    if (experience.sentiment === 'negative') {
+      box.akxeraiIssues = mergeAkxeraiIssueRows(box.akxeraiIssues, [
+        { category: experience.category || 'other', quote: experience.quote },
+      ])
+    } else {
+      box.akxeraiPraise = mergeInsightQuoteLists(box.akxeraiPraise, [experience.quote])
+    }
+  }
+
+  return box
 }
 
 function normalizeQuoteSlice(text) {
@@ -2194,15 +2323,19 @@ export function parseSessionInsightsFromSummary(text) {
   }
 }
 
-/** Prefer insights box; fall back to legacy labeled blocks inside summary. */
+/** Prefer SESSION INSIGHTS block + footer JSON union; lift gaps from legacy Archivist labels. */
 export function resolveSessionInsightsFromArchivist(enrichedSummary, geminiRawSummary = '') {
-  let insights = parseSessionInsightsFromSummary(enrichedSummary)
-  if (
-    !sessionInsightsHasSignal(insights) &&
-    geminiRawSummary &&
-    /SOURCE:\s*local_fallback/i.test(String(enrichedSummary ?? ''))
-  ) {
-    insights = parseSessionInsightsFromSummary(geminiRawSummary)
+  const fromEnriched = parseSessionInsightsFromSummary(enrichedSummary)
+  const fromGemini = geminiRawSummary ? parseSessionInsightsFromSummary(geminiRawSummary) : emptySessionInsights()
+  let insights = mergeSessionInsights(fromEnriched, fromGemini)
+
+  if (!sessionInsightsHasSignal(insights) && /SOURCE:\s*local_fallback/i.test(String(enrichedSummary ?? ''))) {
+    insights = mergeSessionInsights(insights, fromGemini)
+  }
+
+  insights = augmentInsightsFromArchivistLabels(enrichedSummary, insights)
+  if (geminiRawSummary && geminiRawSummary !== enrichedSummary) {
+    insights = augmentInsightsFromArchivistLabels(geminiRawSummary, insights)
   }
   return insights
 }

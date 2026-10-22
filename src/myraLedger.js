@@ -1,7 +1,7 @@
 import { parseExperienceViewSecondsFromFooter, resetExperienceViewTotals, takeExperienceViewTotals } from './myraExperienceView.js'
 import { isSupabaseConfigured, supabase, LEDGER_TABLE } from './supabaseClient.js'
 import { isOfflineMyraFallback } from './myraErrorFallback.js'
-import { parseBrandProductPraise, parseAkxeraiPraiseFromSummary, parseDiscoveryFromSummary, summarizeSessionDialogue, buildLocalStorySummary, extractStoryFromSummary, extractDashboardQuoteFromSummary, enrichSessionSummary, repairSessionSummaryFromDialogue, sanitizeSummaryForMemory, shouldSkipSessionSummary, hasUserSpeechInDialogue, extractSenderQuotesFromSummary, extractSenderLinesFromDialogue, extractReceiverQuotesFromSummary, buildEnglishQuotePreserveHint, MYRA_LEDGER_READING_GUIDE, RECIPIENT_DELIVERY_CONCEPT, emptySessionInsights, resolveSessionInsightsFromArchivist, sessionInsightsHasSignal } from './myraSummarize.js'
+import { parseBrandProductPraise, parseAkxeraiPraiseFromSummary, parseDiscoveryFromSummary, summarizeSessionDialogue, buildLocalStorySummary, extractStoryFromSummary, extractDashboardQuoteFromSummary, enrichSessionSummary, repairSessionSummaryFromDialogue, sanitizeSummaryForMemory, shouldSkipSessionSummary, hasUserSpeechInDialogue, extractSenderQuotesFromSummary, extractSenderLinesFromDialogue, extractReceiverQuotesFromSummary, buildEnglishQuotePreserveHint, MYRA_LEDGER_READING_GUIDE, RECIPIENT_DELIVERY_CONCEPT, emptySessionInsights, resolveSessionInsightsFromArchivist, sessionInsightsHasSignal, mergeSessionInsights, serializeSessionInsightsForFooter } from './myraSummarize.js'
 import { buildAgeCategoryAnalytics, normalizeAgeCategoryId } from './myraAgeProfile.js'
 
 const LEDGER_THREAD_MEMORY_SELECT =
@@ -800,15 +800,17 @@ function buildSessionSummaryEntry({
   ]
   if (returnGap) lines.push(`return_gap: ${returnGap}`)
   lines.push('summary:', wrapSummaryWithReturnContext(summary, returnGap))
-  if (praise?.detected && praise.quote) {
-    lines.push(`brand_praise: "${praise.quote}"`)
-    lines.push(`praise: "${praise.quote}"`)
-  }
-  if (akxeraiPraise?.detected && akxeraiPraise.quote) {
-    lines.push(`axerai_praise: "${akxeraiPraise.quote}"`)
-  }
-  if (sessionInsights && sessionInsightsHasSignal(sessionInsights)) {
-    lines.push(`session_insights: ${JSON.stringify(sessionInsights)}`)
+  const insights = sessionInsights ?? emptySessionInsights()
+  if (sessionInsightsHasSignal(insights)) {
+    lines.push(`session_insights: ${serializeSessionInsightsForFooter(insights)}`)
+  } else {
+    if (praise?.detected && praise.quote) {
+      lines.push(`brand_praise: "${praise.quote}"`)
+      lines.push(`praise: "${praise.quote}"`)
+    }
+    if (akxeraiPraise?.detected && akxeraiPraise.quote) {
+      lines.push(`axerai_praise: "${akxeraiPraise.quote}"`)
+    }
   }
   return lines.join('\n')
 }
@@ -899,13 +901,19 @@ async function buildSessionSummaryAndPraise({
         !String(geminiSummary.text).includes('sender: "') &&
         userLines.length > 0
 
-      const sessionInsights = resolveSessionInsightsFromArchivist(enriched, geminiSummary.text)
+      let sessionInsights = resolveSessionInsightsFromArchivist(enriched, geminiSummary.text)
       const praiseFromInsights = sessionInsights.brandPraise[0]
         ? { detected: true, quote: sessionInsights.brandPraise[0] }
         : parseBrandProductPraise(enriched)
       const akxeraiFromInsights = sessionInsights.akxeraiPraise[0]
         ? { detected: true, quote: sessionInsights.akxeraiPraise[0] }
         : parseAkxeraiPraiseFromSummary(enriched)
+      sessionInsights = mergeSessionInsights(sessionInsights, {
+        brandPraise: praiseFromInsights.detected ? [praiseFromInsights.quote] : [],
+        brandIssues: [],
+        akxeraiPraise: akxeraiFromInsights.detected ? [akxeraiFromInsights.quote] : [],
+        akxeraiIssues: [],
+      })
 
       return {
         summary: enriched,
@@ -2754,18 +2762,12 @@ export function parseSessionSummaryDetails(sessionSummaries) {
     const akxeraiPraiseMatch =
       block.match(/^axerai_praise:\s*"([^"]*)"\s*$/m) || block.match(/^akxerai_praise:\s*"([^"]*)"\s*$/m)
     const insightsLine = block.match(/^session_insights:\s*(\{[\s\S]*\})\s*$/im)
-    let sessionInsights = emptySessionInsights()
-    if (insightsLine?.[1]) {
-      try {
-        sessionInsights = resolveSessionInsightsFromArchivist(`session_insights: ${insightsLine[1].trim()}`)
-      } catch {
-        sessionInsights = emptySessionInsights()
-      }
-    }
     const summary = extractSummaryBodyFromSessionBlock(block)
-    if (!sessionInsightsHasSignal(sessionInsights)) {
-      sessionInsights = resolveSessionInsightsFromArchivist(summary)
-    }
+    const fromFooter = insightsLine?.[1]
+      ? resolveSessionInsightsFromArchivist(`session_insights: ${insightsLine[1].trim()}`)
+      : emptySessionInsights()
+    const fromBody = resolveSessionInsightsFromArchivist(summary)
+    const sessionInsights = mergeSessionInsights(fromBody, fromFooter)
     const brandPraise = parseBrandProductPraise(summary)
     const akxeraiPraise = parseAkxeraiPraiseFromSummary(summary)
     const discovery = parseDiscoveryFromSummary(summary)

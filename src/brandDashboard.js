@@ -28,6 +28,30 @@ function isSummaryDump(text) {
   return /THREAD:|SCAN CONVERSATION:|MYRA LAST STATE:|SESSION END:/i.test(t)
 }
 
+function quoteDedupeKey(quote) {
+  return String(quote ?? '')
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+}
+
+/** Same quote copied across scans → show once (keep latest scan metadata). */
+function dedupeQuoteFeedbacks(rows) {
+  const byKey = new Map()
+  for (const row of rows) {
+    const key = `${row.code}|${quoteDedupeKey(row.quote)}`
+    const prev = byKey.get(key)
+    if (!prev || (row.scanNumber ?? 0) >= (prev.scanNumber ?? 0)) {
+      byKey.set(key, row)
+    }
+  }
+  return [...byKey.values()].sort((a, b) => {
+    if (a.code !== b.code) return String(a.code).localeCompare(String(b.code))
+    if (a.scanNumber !== b.scanNumber) return a.scanNumber - b.scanNumber
+    return quoteDedupeKey(a.quote).localeCompare(quoteDedupeKey(b.quote))
+  })
+}
+
 export async function fetchBrandLedgerThreads(brandSlug = DEFAULT_BRAND_SLUG) {
   if (!supabase) return []
 
@@ -396,6 +420,12 @@ export function buildBrandDashboardAnalytics(threads = [], brandAccount = null, 
   const avgTalkTimePerScannedCodeSeconds =
     scannedCodes > 0 ? Math.round(totalTalkTimeSeconds / scannedCodes) : 0
 
+  const brandPraiseDeduped = dedupeQuoteFeedbacks(brandPraise)
+  const brandCriticismDeduped = dedupeQuoteFeedbacks(brandCriticism)
+  const akxeraiPraiseDeduped = dedupeQuoteFeedbacks(akxeraiPraise)
+  const akxeraiFeedbackDeduped = dedupeQuoteFeedbacks(akxeraiFeedback)
+  const brandPromptDeduped = dedupeQuoteFeedbacks(brandPrompt)
+
   return {
     codes,
     totalCodes,
@@ -407,25 +437,25 @@ export function buildBrandDashboardAnalytics(threads = [], brandAccount = null, 
     totalArViewSeconds,
     totalVrViewSeconds,
     totalOverviewViewSeconds,
-    brandPraise,
-    brandCriticism,
+    brandPraise: brandPraiseDeduped,
+    brandCriticism: brandCriticismDeduped,
     brandDiscovery,
-    brandPrompt,
-    akxeraiPraise,
-    akxeraiFeedback,
-    brandPraiseQuotes: brandPraise.map(({ code, scanNumber, role, quote }) => ({
+    brandPrompt: brandPromptDeduped,
+    akxeraiPraise: akxeraiPraiseDeduped,
+    akxeraiFeedback: akxeraiFeedbackDeduped,
+    brandPraiseQuotes: brandPraiseDeduped.map(({ code, scanNumber, role, quote }) => ({
       code,
       scanNumber,
       role,
       quote,
     })),
-    akxeraiPraiseQuotes: akxeraiPraise.map(({ code, scanNumber, role, quote }) => ({
+    akxeraiPraiseQuotes: akxeraiPraiseDeduped.map(({ code, scanNumber, role, quote }) => ({
       code,
       scanNumber,
       role,
       quote,
     })),
-    akxeraiPraiseCount: akxeraiPraise.length,
+    akxeraiPraiseCount: akxeraiPraiseDeduped.length,
     wallet,
     tokenLog,
     perCodeCaps,
